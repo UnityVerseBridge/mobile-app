@@ -1,0 +1,19 @@
+{
+    "name": "UnityVerseBridge.MobileApp",
+    "rootNamespace": "UnityVerseBridge.MobileApp",
+    "references": [
+        "GUID:75469ad4d38634e559750d17036d5f7c",
+        "GUID:6faa81845b861be409492551a105828e",
+        "GUID:bd72f677a2b13d3468d253fe3c4df6a8",
+        "GUID:04376767bc1f3b428aefa3d20743e819"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
