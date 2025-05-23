@@ -1,95 +1,93 @@
 using UnityEngine;
-using UnityEngine.InputSystem; // Input System 사용
-using UnityEngine.InputSystem.EnhancedTouch; // Enhanced Touch API 사용 (더 권장됨)
-using UnityVerseBridge.Core; // WebRtcManager 사용
-using UnityVerseBridge.Core.DataChannel.Data; // TouchData 사용
+using UnityEngine.InputSystem.EnhancedTouch;
+using UnityVerseBridge.Core;
+using UnityVerseBridge.Core.DataChannel.Data;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
-public class MobileInputSender : MonoBehaviour
+namespace UnityVerseBridge.MobileApp
 {
-    [SerializeField] private WebRtcManager webRtcManager;
-    // 터치 입력을 받을 영역 지정 (선택 사항, 예: 특정 Panel)
-    // [SerializeField] private RectTransform touchArea;
-
-    void OnEnable()
+    /// <summary>
+    /// 모바일 터치 입력을 WebRTC로 전송
+    /// </summary>
+    public class MobileInputSender : MonoBehaviour
     {
-        // Enhanced Touch API 활성화 (더 정확하고 다양한 터치 정보 제공)
-        EnhancedTouchSupport.Enable();
-        TouchSimulation.Enable(); // 에디터에서 마우스로 테스트하려면 추가
-    }
+        [SerializeField] private WebRtcManager webRtcManager;
+        [SerializeField] private float sendInterval = 0.016f; // 60fps
+        
+        private float lastSendTime;
 
-    void OnDisable()
-    {
-        // Enhanced Touch API 비활성화
-        EnhancedTouchSupport.Disable();
-        TouchSimulation.Disable(); // 에디터 테스트용 비활성화
-    }
-
-    void Update()
-    {
-        // WebRTC 연결 및 데이터 채널이 열려있을 때만 처리
-        // 참고: WebRtcManager에 데이터 채널 상태를 확인하는 IsDataChannelOpen 같은 속성을 추가하면 더 명확함
-        if (webRtcManager == null || !webRtcManager.IsWebRtcConnected)
+        void OnEnable()
         {
-            return;
+            EnhancedTouchSupport.Enable();
         }
 
-        // 활성화된 모든 터치 정보 가져오기
-        foreach (var touch in UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches) // EnhancedTouch.Touch 사용
+        void OnDisable()
         {
-            // 터치 상태 (Began, Moved, Ended 등) 확인
-            UnityEngine.InputSystem.TouchPhase currentPhase = touch.phase;
+            EnhancedTouchSupport.Disable();
+        }
 
-            // 특정 영역 내 터치만 처리 (선택 사항)
-            // if (touchArea != null && !RectTransformUtility.RectangleContainsScreenPoint(touchArea, touch.screenPosition, null))
-            // {
-            //     continue; // 터치 영역 밖이면 무시
-            // }
+        void Start()
+        {
+            if (webRtcManager == null)
+            {
+                webRtcManager = FindObjectOfType<WebRtcManager>();
+                if (webRtcManager == null)
+                {
+                    Debug.LogError("[MobileInputSender] WebRtcManager not found!");
+                    enabled = false;
+                }
+            }
+        }
 
-            // 화면 좌표 (픽셀)
-            Vector2 screenPosition = touch.screenPosition;
-            // 정규화된 좌표 (0.0 ~ 1.0)
-            Vector2 normalizedPosition = new Vector2(
-                screenPosition.x / Screen.width,
-                screenPosition.y / Screen.height
-            );
+        void Update()
+        {
+            if (!webRtcManager.IsDataChannelOpen) return;
+            
+            // 전송 빈도 제한
+            if (Time.time - lastSendTime < sendInterval) return;
+            
+            var activeTouches = Touch.activeTouches;
+            if (activeTouches.Count == 0) return;
 
-            // TouchData 객체 생성 (Core 패키지의 클래스 사용)
-            // InputSystem.TouchPhase -> 우리 Enum 타입으로 변환 필요
-            UnityVerseBridge.Core.DataChannel.Data.TouchPhase bridgePhase = ConvertPhase(currentPhase);
-            TouchData touchData = new TouchData(touch.touchId, bridgePhase, normalizedPosition);
+            foreach (var touch in activeTouches)
+            {
+                SendTouchData(touch);
+            }
+            
+            lastSendTime = Time.time;
+        }
 
-            // 로그 출력 (디버깅용)
-            Debug.Log($"[MobileInputSender] Sending Touch: ID={touchData.touchId}, Phase={touchData.phase}, Pos=({touchData.positionX:F3}, {touchData.positionY:F3})");
+        private void SendTouchData(Touch touch)
+        {
+            // 화면 좌표를 정규화 (0-1)
+            float normalizedX = touch.screenPosition.x / Screen.width;
+            float normalizedY = touch.screenPosition.y / Screen.height;
 
-            // WebRtcManager를 통해 데이터 전송
-            // WebRtcManager의 SendDataChannelMessage가 object를 받아 JsonUtility.ToJson을 내부적으로 호출한다고 가정
+            var touchData = new TouchData
+            {
+                type = "touch",
+                touchId = touch.touchId,
+                phase = ConvertPhase(touch.phase),
+                positionX = normalizedX,
+                positionY = normalizedY
+            };
+
             webRtcManager.SendDataChannelMessage(touchData);
-
-            // Ended 또는 Canceled 상태일 때 루프 종료 (선택 사항)
-            // if (currentPhase == UnityEngine.InputSystem.TouchPhase.Ended || currentPhase == UnityEngine.InputSystem.TouchPhase.Canceled)
-            // {
-            //     // 필요시 추가 처리
-            // }
+            
+            Debug.Log($"[MobileInputSender] Sent touch: ID={touchData.touchId}, Pos=({normalizedX:F3}, {normalizedY:F3})");
         }
-    }
 
-    // InputSystem의 TouchPhase를 우리가 정의한 Enum으로 변환하는 헬퍼 함수
-    private UnityVerseBridge.Core.DataChannel.Data.TouchPhase ConvertPhase(UnityEngine.InputSystem.TouchPhase inputPhase)
-    {
-        switch (inputPhase)
+        private UnityVerseBridge.Core.DataChannel.Data.TouchPhase ConvertPhase(UnityEngine.InputSystem.TouchPhase inputPhase)
         {
-            case UnityEngine.InputSystem.TouchPhase.Began: 
-                return UnityVerseBridge.Core.DataChannel.Data.TouchPhase.Began;
-            case UnityEngine.InputSystem.TouchPhase.Moved: 
-                return UnityVerseBridge.Core.DataChannel.Data.TouchPhase.Moved;
-            case UnityEngine.InputSystem.TouchPhase.Ended: 
-                return UnityVerseBridge.Core.DataChannel.Data.TouchPhase.Ended;
-            case UnityEngine.InputSystem.TouchPhase.Canceled: 
-                return UnityVerseBridge.Core.DataChannel.Data.TouchPhase.Canceled;
-            // case UnityEngine.InputSystem.TouchPhase.Stationary: 
-            //     return UnityVerseBridge.Core.DataChannel.Data.TouchPhase.Stationary;
-            default: 
-                return UnityVerseBridge.Core.DataChannel.Data.TouchPhase.Moved; // 기본값 또는 예외 처리
+            return inputPhase switch
+            {
+                UnityEngine.InputSystem.TouchPhase.Began => UnityVerseBridge.Core.DataChannel.Data.TouchPhase.Began,
+                UnityEngine.InputSystem.TouchPhase.Moved => UnityVerseBridge.Core.DataChannel.Data.TouchPhase.Moved,
+                UnityEngine.InputSystem.TouchPhase.Stationary => UnityVerseBridge.Core.DataChannel.Data.TouchPhase.Moved, // Stationary를 Moved로 매핑
+                UnityEngine.InputSystem.TouchPhase.Ended => UnityVerseBridge.Core.DataChannel.Data.TouchPhase.Ended,
+                UnityEngine.InputSystem.TouchPhase.Canceled => UnityVerseBridge.Core.DataChannel.Data.TouchPhase.Canceled,
+                _ => UnityVerseBridge.Core.DataChannel.Data.TouchPhase.Canceled
+            };
         }
     }
 }
