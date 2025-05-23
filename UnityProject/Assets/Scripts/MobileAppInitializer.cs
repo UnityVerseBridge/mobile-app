@@ -107,13 +107,27 @@ namespace UnityVerseBridge.MobileApp
                 try
                 {
                     // Authentication if required
+                    string connectUrl = serverUrl;
                     if (connectionConfig.requireAuthentication)
                     {
-                        var token = await AuthenticateAsync();
-                        serverUrl += $"?token={token}";
+                        Debug.Log("[MobileAppInitializer] Authenticating...");
+                        bool authSuccess = await AuthenticationHelper.AuthenticateAsync(
+                            serverUrl,
+                            clientId, 
+                            "mobile", 
+                            connectionConfig.authKey
+                        );
+                        
+                        if (!authSuccess)
+                        {
+                            throw new Exception("Authentication failed");
+                        }
+                        
+                        // Add token to URL if authenticated
+                        connectUrl = AuthenticationHelper.AppendTokenToUrl(serverUrl);
                     }
                     
-                    await signalingClient.InitializeAndConnect(webSocketAdapter, serverUrl);
+                    await signalingClient.InitializeAndConnect(webSocketAdapter, connectUrl);
                     Debug.Log("[MobileAppInitializer] SignalingClient 연결 성공");
                     
                     await Task.Delay(100);
@@ -137,18 +151,7 @@ namespace UnityVerseBridge.MobileApp
             }
         }
 
-        private async Task<string> AuthenticateAsync()
-        {
-            var authData = new
-            {
-                clientId = clientId,
-                clientType = "mobile",
-                authKey = connectionConfig.authKey
-            };
-            
-            await Task.Delay(100);
-            return "dummy-token"; // Replace with actual auth implementation
-        }
+        // Removed AuthenticateAsync method - now using AuthenticationManager
         
         private async Task RegisterClient()
         {

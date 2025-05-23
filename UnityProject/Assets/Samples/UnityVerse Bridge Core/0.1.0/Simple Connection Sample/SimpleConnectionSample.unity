@@ -787,7 +787,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2028446816}
   m_HandleRect: {fileID: 2028446815}
   m_Direction: 2
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -1276,6 +1276,7 @@ GameObject:
   m_Component:
   - component: {fileID: 905667171}
   - component: {fileID: 905667170}
+  - component: {fileID: 905667173}
   - component: {fileID: 905667172}
   m_Layer: 0
   m_Name: SampleRunner
@@ -1305,6 +1306,11 @@ MonoBehaviour:
       username: 
     dataChannelLabel: sendChannel
   signalingServerUrl: ws://localhost:8080
+  isOfferer: 0
+  autoStartPeerConnection: 0
+  _isSignalingConnected: 0
+  _peerConnectionState: 0
+  _dataChannelState: 3
 --- !u!4 &905667171
 Transform:
   m_ObjectHideFlags: 0
@@ -1341,6 +1347,28 @@ MonoBehaviour:
   sendMessageButton: {fileID: 1552114594}
   receivedMessagesText: {fileID: 1086264558}
   receivedMessagesScrollRect: {fileID: 1166025924}
+--- !u!114 &905667173
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 905667169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc508ce0daff5cd47ad09b040ec1d262, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  webRtcManager: {fileID: 905667170}
+  connectionConfig: {fileID: 11400000, guid: d71541c637844964e8ee81215a49732e, type: 2}
+  webRtcConfiguration:
+    iceServers:
+    - credential: 
+      credentialType: 0
+      urls:
+      - stun:stun.l.google.com:19302
+      username: 
+    dataChannelLabel: sendChannel
 --- !u!1 &934771341
 GameObject:
   m_ObjectHideFlags: 0
