@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ConnectionConfig
   m_EditorClassIdentifier: 
   signalingServerUrl: ws://localhost:8080
-  requireAuthentication: 0
+  requireAuthentication: 1
   authKey: development-key
   roomId: room_123
   autoGenerateRoomId: 0
