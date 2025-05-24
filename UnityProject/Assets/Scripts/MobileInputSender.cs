@@ -3,6 +3,7 @@ using UnityEngine.InputSystem.EnhancedTouch;
 using UnityVerseBridge.Core;
 using UnityVerseBridge.Core.DataChannel.Data;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
+using TouchPhase = UnityVerseBridge.Core.DataChannel.Data.TouchPhase;
 
 namespace UnityVerseBridge.MobileApp
 {
@@ -28,6 +29,8 @@ namespace UnityVerseBridge.MobileApp
 
         void Start()
         {
+            Debug.Log("[MobileInputSender] Starting...");
+            
             if (webRtcManager == null)
             {
                 webRtcManager = FindObjectOfType<WebRtcManager>();
@@ -35,46 +38,102 @@ namespace UnityVerseBridge.MobileApp
                 {
                     Debug.LogError("[MobileInputSender] WebRtcManager not found!");
                     enabled = false;
+                    return;
                 }
             }
+            
+            Debug.Log($"[MobileInputSender] WebRtcManager found: {webRtcManager.name}");
+            
+            // Input System 상태 확인
+            Debug.Log($"[MobileInputSender] Enhanced Touch Enabled: {EnhancedTouchSupport.enabled}");
+            Debug.Log($"[MobileInputSender] Touch simulation: {UnityEngine.InputSystem.EnhancedTouch.TouchSimulation.instance?.enabled ?? false}");
         }
 
         void Update()
         {
-            if (!webRtcManager.IsDataChannelOpen) return;
+            // DataChannel 상태 확인
+            if (!webRtcManager.IsDataChannelOpen)
+            {
+                return;
+            }
             
             // 전송 빈도 제한
             if (Time.time - lastSendTime < sendInterval) return;
             
-            var activeTouches = Touch.activeTouches;
-            if (activeTouches.Count == 0) return;
-
-            foreach (var touch in activeTouches)
+            // Unity Editor나 Standalone에서 마우스 입력 처리
+            #if UNITY_EDITOR || UNITY_STANDALONE
+            if (Input.GetMouseButton(0) || Input.GetMouseButtonDown(0) || Input.GetMouseButtonUp(0))
             {
-                SendTouchData(touch);
+                SendMouseAsTouch();
+                lastSendTime = Time.time;
+                return;
             }
+            #endif
             
-            lastSendTime = Time.time;
+            // 모바일에서 터치 입력 처리
+            if (Input.touchCount > 0)
+            {
+                for (int i = 0; i < Input.touchCount; i++)
+                {
+                    SendLegacyTouchData(Input.GetTouch(i));
+                }
+                lastSendTime = Time.time;
+            }
         }
 
-        private void SendTouchData(Touch touch)
+        private void SendMouseAsTouch()
         {
-            // 화면 좌표를 정규화 (0-1)
-            float normalizedX = touch.screenPosition.x / Screen.width;
-            float normalizedY = touch.screenPosition.y / Screen.height;
-
+            // 마우스 위치를 정규화 (0-1)
+            float normalizedX = Input.mousePosition.x / Screen.width;
+            float normalizedY = Input.mousePosition.y / Screen.height;
+            
+            TouchPhase phase = TouchPhase.Moved;
+            if (Input.GetMouseButtonDown(0)) phase = TouchPhase.Began;
+            else if (Input.GetMouseButtonUp(0)) phase = TouchPhase.Ended;
+            
             var touchData = new TouchData
             {
                 type = "touch",
-                touchId = touch.touchId,
-                phase = ConvertPhase(touch.phase),
+                touchId = 0, // 마우스는 항상 ID 0
+                phase = phase,
                 positionX = normalizedX,
                 positionY = normalizedY
             };
 
             webRtcManager.SendDataChannelMessage(touchData);
-            
-            Debug.Log($"[MobileInputSender] Sent touch: ID={touchData.touchId}, Pos=({normalizedX:F3}, {normalizedY:F3})");
+            Debug.Log($"[MobileInputSender] Sent mouse as touch: Phase={phase}, Pos=({normalizedX:F3}, {normalizedY:F3})");
+        }
+        
+        private void SendLegacyTouchData(UnityEngine.Touch touch)
+        {
+            // 화면 좌표를 정규화 (0-1)
+            float normalizedX = touch.position.x / Screen.width;
+            float normalizedY = touch.position.y / Screen.height;
+
+            var touchData = new TouchData
+            {
+                type = "touch",
+                touchId = touch.fingerId,
+                phase = ConvertLegacyPhase(touch.phase),
+                positionX = normalizedX,
+                positionY = normalizedY
+            };
+
+            webRtcManager.SendDataChannelMessage(touchData);
+            Debug.Log($"[MobileInputSender] Sent touch: ID={touchData.touchId}, Phase={touchData.phase}, Pos=({normalizedX:F3}, {normalizedY:F3})");
+        }
+        
+        private UnityVerseBridge.Core.DataChannel.Data.TouchPhase ConvertLegacyPhase(UnityEngine.TouchPhase phase)
+        {
+            return phase switch
+            {
+                UnityEngine.TouchPhase.Began => TouchPhase.Began,
+                UnityEngine.TouchPhase.Moved => TouchPhase.Moved,
+                UnityEngine.TouchPhase.Stationary => TouchPhase.Moved,
+                UnityEngine.TouchPhase.Ended => TouchPhase.Ended,
+                UnityEngine.TouchPhase.Canceled => TouchPhase.Canceled,
+                _ => TouchPhase.Canceled
+            };
         }
 
         private UnityVerseBridge.Core.DataChannel.Data.TouchPhase ConvertPhase(UnityEngine.InputSystem.TouchPhase inputPhase)
