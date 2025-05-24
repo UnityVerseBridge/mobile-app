@@ -4,23 +4,12 @@ using UnityEngine;
 using UnityVerseBridge.Core;
 using UnityVerseBridge.Core.Signaling;
 using UnityVerseBridge.Core.Signaling.Data;
-using UnityVerseBridge.MobileApp.Signaling;
+using UnityVerseBridge.Core.Signaling.Adapters;
+using UnityVerseBridge.Core.Signaling.Messages;
+using Unity.WebRTC;
 
 namespace UnityVerseBridge.MobileApp
 {
-    [System.Serializable]
-    public class RegisterMessage : SignalingMessageBase
-    {
-        public string peerId;
-        public string clientType;
-        public string roomId;
-        
-        public RegisterMessage()
-        {
-            type = "register";
-        }
-    }
-    
     public class MobileAppInitializer : MonoBehaviour
     {
         private string clientId;
@@ -36,6 +25,12 @@ namespace UnityVerseBridge.MobileApp
         {
             try
             {
+                // Critical: WebRTC.Update() coroutine must be started first
+                StartCoroutine(WebRTC.Update());
+                
+                // Note: In newer Unity WebRTC versions, explicit Initialize() is not needed
+                // WebRTC initializes automatically when first used
+                
                 InitializeApp();
             }
             catch (Exception ex)
@@ -209,14 +204,9 @@ namespace UnityVerseBridge.MobileApp
             {
                 signalingClient.OnSignalingMessageReceived -= HandleSignalingMessage;
             }
+            
+            // Note: In newer Unity WebRTC versions, explicit Dispose() is not needed
+            // Resources are cleaned up automatically
         }
-    }
-    
-    [System.Serializable]
-    public class ErrorMessage
-    {
-        public string type;
-        public string error;
-        public string context;
     }
 }
