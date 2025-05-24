@@ -3,8 +3,10 @@ using UnityEngine.UI;
 using Unity.WebRTC; // Unity.WebRTC 패키지 참조 추가
 using UnityVerseBridge.Core;
 using UnityVerseBridge.Core.Signaling;
-using UnityVerseBridge.MobileApp.Signaling;
+using UnityVerseBridge.Core.Signaling.Adapters;
 using System.Threading.Tasks;
+using TMPro;
+using System.Collections;
 
 namespace UnityVerseBridge.MobileApp.Test
 {
@@ -19,7 +21,7 @@ namespace UnityVerseBridge.MobileApp.Test
         [SerializeField] private MobileHapticReceiver hapticReceiver;
 
         [Header("UI 요소")]
-        [SerializeField] private Text statusText;
+        [SerializeField] private TextMeshProUGUI statusText;
         [SerializeField] private Button connectButton;
         [SerializeField] private Button disconnectButton;
         [SerializeField] private Button sendTestTouchButton;
@@ -33,7 +35,7 @@ namespace UnityVerseBridge.MobileApp.Test
         private VideoStreamTrack videoStreamTrack;
         private Texture receivedTexture;
         private ISignalingClient signalingClient;
-        private NativeWebSocketAdapter webSocketAdapter;
+        private SystemWebSocketAdapter webSocketAdapter;
         private bool isConnected = false;
 
         void Start()
@@ -142,7 +144,7 @@ namespace UnityVerseBridge.MobileApp.Test
             LogStatus($"시그널링 서버에 연결 시도 중: {serverUrl}");
 
             // WebSocket 어댑터 및 시그널링 클라이언트 생성
-            webSocketAdapter = new NativeWebSocketAdapter();
+            webSocketAdapter = new SystemWebSocketAdapter();
             signalingClient = new SignalingClient();
 
             try
@@ -351,6 +353,13 @@ namespace UnityVerseBridge.MobileApp.Test
             
             if (serverUrlInput != null)
                 serverUrlInput.interactable = !isConnected;
+        }
+        
+        void Update()
+        {
+            // WebSocket 메시지 큐 처리
+            webSocketAdapter?.DispatchMessageQueue();
+            signalingClient?.DispatchMessages();
         }
     }
 } 
