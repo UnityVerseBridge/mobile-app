@@ -2,6 +2,7 @@
   "dependencies": {
     "com.boxqkrtm.ide.cursor": "https://github.com/boxqkrtm/com.unity.ide.cursor.git",
     "com.unity.collab-proxy": "2.7.1",
+    "com.unity.device-simulator.devices": "1.0.0",
     "com.unity.feature.mobile": "1.0.0",
     "com.unity.ide.rider": "3.0.36",
     "com.unity.ide.visualstudio": "2.0.23",
@@ -11,7 +12,7 @@
     "com.unity.timeline": "1.8.8",
     "com.unity.ugui": "2.0.0",
     "com.unity.visualscripting": "1.9.7",
-    "com.unityversebridge.core": "file:D:/Unity/UnityVerseBridge/core",
+    "com.unityversebridge.core": "https://github.com/UnityVerseBridge/core.git",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",
