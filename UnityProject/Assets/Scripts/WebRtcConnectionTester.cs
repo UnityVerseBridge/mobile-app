@@ -37,6 +37,7 @@ namespace UnityVerseBridge.MobileApp.Test
         private ISignalingClient signalingClient;
         private SystemWebSocketAdapter webSocketAdapter;
         private bool isConnected = false;
+        private bool isInitializerHandlingConnection = false; // MobileAppInitializer가 연결을 처리 중인지 확인
 
         void Start()
         {
@@ -70,8 +71,14 @@ namespace UnityVerseBridge.MobileApp.Test
 
             UpdateUI();
             
-            // 자동 연결 옵션이 켜져 있으면 시작 시 자동으로 연결
-            if (autoConnectOnStart && webRtcManager != null)
+            // MobileAppInitializer가 이미 연결을 처리하고 있는지 확인
+            var initializer = FindObjectOfType<MobileAppInitializer>();
+            if (initializer != null && initializer.enabled)
+            {
+                isInitializerHandlingConnection = true;
+                Debug.Log("[WebRtcConnectionTester] MobileAppInitializer가 연결을 처리합니다. 테스터는 모니터링만 수행합니다.");
+            }
+            else if (autoConnectOnStart && webRtcManager != null)
             {
                 Debug.Log("[WebRtcConnectionTester] 자동 연결 시작...");
                 Connect();
@@ -130,6 +137,12 @@ namespace UnityVerseBridge.MobileApp.Test
 
         public async void Connect()
         {
+            if (isInitializerHandlingConnection)
+            {
+                LogStatus("MobileAppInitializer가 연결을 처리 중입니다.");
+                return;
+            }
+            
             if (isConnected || webRtcManager == null)
             {
                 LogStatus("이미 연결되어 있거나 WebRtcManager가 없습니다.");
