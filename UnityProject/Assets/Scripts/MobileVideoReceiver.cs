@@ -138,16 +138,24 @@ namespace UnityVerseBridge.MobileApp
             }
         }
         
+        /// <summary>
+        /// 폴링 방식으로 비디오 텍스처를 확인하는 폴백 메커니즘입니다.
+        /// OnVideoReceived 이벤트가 발생하지 않는 경우를 대비한 보호 로직입니다.
+        /// 일반적으로 OnVideoReceived가 잘 작동하면 이 코루틴은 자동 종료됩니다.
+        /// </summary>
         private IEnumerator UpdateVideoTexture()
         {
             Debug.Log("[MobileVideoReceiver] Starting video texture update coroutine...");
             
-            // Fallback polling method for edge cases
-            yield return new WaitForSeconds(0.5f); // Initial delay
+            // 초기 대기: 디코더 초기화를 위한 시간
+            yield return new WaitForSeconds(0.5f);
             
-            // Check for texture availability
+            // 최대 5초 동안 텍스처 생성을 기다림
+            // Unity WebRTC는 디코더 초기화와 첫 프레임 수신에 시간이 걸릴 수 있음
             float waitTime = 0f;
-            while (receivedVideoTrack != null && waitTime < 5f)
+            const float maxWaitTime = 5f;
+            
+            while (receivedVideoTrack != null && waitTime < maxWaitTime)
             {
                 if (receivedVideoTrack.Texture != null)
                 {
@@ -156,7 +164,7 @@ namespace UnityVerseBridge.MobileApp
                 }
                 
                 waitTime += Time.deltaTime;
-                yield return null;
+                yield return null; // 다음 프레임까지 대기
             }
             
             if (receivedVideoTrack == null || receivedVideoTrack.Texture == null)
@@ -165,17 +173,19 @@ namespace UnityVerseBridge.MobileApp
                 yield break;
             }
             
-            // 텍스처 렌더링 루프
+            // 폴링 기반 텍스처 업데이트 루프
+            // 일반적으로 OnVideoReceived가 호출되면 이 루프는 사용되지 않음
             while (isReceiving && receivedVideoTrack != null && receivedVideoTrack.ReadyState == TrackState.Live)
             {
                 if (receivedVideoTrack.Texture != null)
                 {
-                    // RenderTexture에 복사하는 방식으로 시도
+                    // Graphics.Blit: GPU에서 텍스처를 효율적으로 복사
+                    // WebRTC 텍스처는 직접 사용할 수 없는 경우가 있어 RenderTexture로 복사
                     Graphics.Blit(receivedVideoTrack.Texture, receiveTexture);
                     displayImage.texture = receiveTexture;
                 }
                 
-                yield return new WaitForEndOfFrame();
+                yield return new WaitForEndOfFrame(); // 프레임 렌더링 종료 후 실행
             }
             
             Debug.Log("[MobileVideoReceiver] Video texture update coroutine ended");
