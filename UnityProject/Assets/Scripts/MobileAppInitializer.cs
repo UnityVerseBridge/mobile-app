@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityVerseBridge.Core;
@@ -63,7 +64,15 @@ namespace UnityVerseBridge.MobileApp
                 webRtcManager.SetConfiguration(webRtcConfiguration);
             }
 
-            StartSignalingConnection(connectionConfig.signalingServerUrl);
+            // Set role as Answerer
+            webRtcManager.SetRole(false);
+            // Answerer doesn't need autoStartPeerConnection - it waits for offer
+            webRtcManager.autoStartPeerConnection = false;
+
+            // Handle disconnection and auto-reconnect
+            signalingClient.OnDisconnected += HandleSignalingDisconnected;
+
+            StartCoroutine(DelayedSignalingConnection(connectionConfig.signalingServerUrl));
         }
 
         private bool ValidateDependencies()
@@ -125,7 +134,7 @@ namespace UnityVerseBridge.MobileApp
                     await signalingClient.InitializeAndConnect(webSocketAdapter, connectUrl);
                     Debug.Log("[MobileAppInitializer] SignalingClient 연결 성공");
                     
-                    await Task.Delay(100);
+                    await Task.Delay(500); // Give more time for initialization
                     await RegisterClient();
                     
                     signalingClient.OnSignalingMessageReceived += HandleSignalingMessage;
@@ -198,11 +207,50 @@ namespace UnityVerseBridge.MobileApp
             signalingClient?.DispatchMessages();
         }
         
+        private IEnumerator DelayedSignalingConnection(string serverUrl)
+        {
+            // Wait for WebRTC initialization to complete
+            yield return new WaitForSeconds(0.5f);
+            StartSignalingConnection(serverUrl);
+        }
+
+        private void HandleSignalingDisconnected()
+        {
+            Debug.LogWarning("[MobileAppInitializer] Signaling disconnected. Attempting to reconnect...");
+            StartCoroutine(ReconnectSignaling());
+        }
+
+        private IEnumerator ReconnectSignaling()
+        {
+            yield return new WaitForSeconds(2f); // Wait before reconnecting
+            
+            // Clean up previous connection
+            if (signalingClient != null)
+            {
+                signalingClient.OnSignalingMessageReceived -= HandleSignalingMessage;
+                signalingClient.OnDisconnected -= HandleSignalingDisconnected;
+            }
+            
+            // WebSocket adapter doesn't need explicit disposal
+            webSocketAdapter = null;
+            
+            // Create new instances
+            webSocketAdapter = new SystemWebSocketAdapter();
+            signalingClient = new SignalingClient();
+            webRtcManager.SetupSignaling(signalingClient);
+            
+            if (connectionConfig != null)
+            {
+                StartSignalingConnection(connectionConfig.signalingServerUrl);
+            }
+        }
+
         void OnDestroy()
         {
             if (signalingClient != null)
             {
                 signalingClient.OnSignalingMessageReceived -= HandleSignalingMessage;
+                signalingClient.OnDisconnected -= HandleSignalingDisconnected;
             }
             
             // Note: In newer Unity WebRTC versions, explicit Dispose() is not needed
