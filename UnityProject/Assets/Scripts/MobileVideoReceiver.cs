@@ -31,6 +31,8 @@ namespace UnityVerseBridge.MobileApp
                     return;
                 }
             }
+            
+            Debug.Log($"[MobileVideoReceiver] WebRTC connection state at start: {webRtcManager.IsWebRtcConnected}");
 
             if (displayImage == null)
             {
@@ -102,17 +104,38 @@ namespace UnityVerseBridge.MobileApp
                 Debug.Log("[MobileVideoReceiver] Enabled video track");
             }
             
-            // Primary method: Use OnVideoReceived event (recommended)
-            receivedVideoTrack.OnVideoReceived += OnVideoFrameReceived;
+            // Check decoder initialization status
+            StartCoroutine(WaitForDecoder());
+        }
+        
+        private IEnumerator WaitForDecoder()
+        {
+            Debug.Log("[MobileVideoReceiver] Waiting for decoder to be ready...");
             
-            isReceiving = true;
+            // Wait a bit for decoder to initialize internally
+            yield return new WaitForSeconds(0.5f);
             
-            // Fallback method: polling (for edge cases)
-            if (updateCoroutine != null)
+            // Check if track is ready by checking ReadyState
+            if (receivedVideoTrack != null && receivedVideoTrack.ReadyState == TrackState.Live)
             {
-                StopCoroutine(updateCoroutine);
+                Debug.Log("[MobileVideoReceiver] Track is live and ready");
+                
+                // Primary method: Use OnVideoReceived event (recommended)
+                receivedVideoTrack.OnVideoReceived += OnVideoFrameReceived;
+                
+                isReceiving = true;
+                
+                // Fallback method: polling (for edge cases)
+                if (updateCoroutine != null)
+                {
+                    StopCoroutine(updateCoroutine);
+                }
+                updateCoroutine = StartCoroutine(UpdateVideoTexture());
             }
-            updateCoroutine = StartCoroutine(UpdateVideoTexture());
+            else
+            {
+                Debug.LogError($"[MobileVideoReceiver] Track not ready after wait. State: {receivedVideoTrack?.ReadyState}");
+            }
         }
 
         private void OnVideoFrameReceived(Texture texture)
@@ -129,12 +152,25 @@ namespace UnityVerseBridge.MobileApp
                     updateCoroutine = null;
                 }
                 
+                // Platform-specific handling
+                #if UNITY_ANDROID
+                // Android may need texture alignment
+                if (texture.width % 16 != 0 || texture.height % 16 != 0)
+                {
+                    Debug.LogWarning("[MobileVideoReceiver] Android texture alignment issue detected");
+                }
+                #endif
+                
                 displayImage.texture = texture;
                 
                 // Adjust aspect ratio to prevent stretching
                 var aspectRatio = (float)texture.width / texture.height;
                 var rt = displayImage.rectTransform;
                 rt.sizeDelta = new Vector2(rt.sizeDelta.x, rt.sizeDelta.x / aspectRatio);
+            }
+            else
+            {
+                Debug.LogWarning("[MobileVideoReceiver] OnVideoFrameReceived called with null texture");
             }
         }
         
