@@ -20,8 +20,8 @@
 
 ## 🛠️ 기술 스택
 
-- Unity 2021.3 LTS
-- Unity WebRTC 3.0.0+
+- Unity 6 LTS (6000.0.33f1) 또는 Unity 2022.3 LTS
+- Unity WebRTC 3.0.0-pre.8+
 - Input System Package
 - UnityVerseBridge.Core Package
 
@@ -32,16 +32,16 @@
 - 개발용 PC (Windows/Mac)
 
 ### 소프트웨어
-- Unity 2021.3 LTS 이상
+- Unity 6 LTS (6000.0.33f1) 이상 또는 Unity 2022.3 LTS
 - iOS/Android Build Support
 - Xcode (iOS 빌드 시)
 
 ## 🚀 설치 및 실행
 
-### 1. 프로젝트 설정
+### 1. 프로젝트 클론
 ```bash
-git clone https://github.com/yourusername/UnityVerseBridge-Mobile.git
-cd UnityVerseBridge-Mobile
+git clone https://github.com/UnityVerseBridge/mobile-app.git
+cd mobile-app
 ```
 
 ### 2. Unity 설정
@@ -149,21 +149,26 @@ SampleScene
 
 ## 🌐 네트워크 설정
 
-### ConnectionConfig.asset
-- Signaling Server URL: `ws://localhost:8080`
-- Room ID: `default-room`
-- Max Reconnect Attempts: 5
-- Connection Timeout: 30초
+### ConnectionConfig 설정
+```
+Signaling Server URL: ws://YOUR_SERVER_IP:YOUR_PORT
+Room ID: default-room (Quest와 동일해야 함)
+Client Type: Mobile
+Auto Connect: true
+Connection Timeout: 30
+```
+
+포트는 시그널링 서버의 .env 파일에서 설정한 포트를 사용합니다.
 
 ### 원격 서버 사용
 1. ConnectionConfig.asset 선택
 2. Inspector에서 URL 수정
-3. 방화벽 포트 열기 (8080)
+3. 방화벽 포트 열기
 
 ## 📱 플랫폼별 고려사항
 
 ### iOS
-- Info.plist에 카메라/마이크 권한 추가
+- Info.plist에 카메라/마이크 권한 추가 (향후 오디오 기능용)
 - Background Modes 설정 (필요시)
 - IPv6 네트워크 지원
 
@@ -172,6 +177,7 @@ SampleScene
   ```xml
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+  <uses-permission android:name="android.permission.VIBRATE" />
   ```
 - ProGuard 규칙 추가 (난독화 시)
 
@@ -211,7 +217,7 @@ SampleScene
 
 - TLS/SSL 지원 (wss://)
 - 룸 기반 격리
-- 인증 토큰 지원
+- 인증 토큰 지원 (향후 JWT 구현)
 
 ## 📊 디버깅 도구
 
@@ -226,6 +232,30 @@ Window > Analysis > Input Debugger:
 - 실시간 입력 상태 모니터링
 - 터치 시뮬레이션 설정
 
+## 🚧 향후 개발 계획
+
+### 우선순위 높음
+- 오디오 수신/송신 기능
+- AR 뷰 모드
+
+### 중간 우선순위
+- 멀티터치 지원
+- 제스처 인식
+- 1:N 연결 대응
+
+### 장기 계획
+- 백그라운드 모드 최적화
+- 적응형 스트리밍
+- 클라우드 연결 지원
+
 ## 📄 라이선스
 
-MIT License
+이 프로젝트는 BSD 3-Clause 라이선스를 따릅니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요.
+
+## 👥 제작자
+
+- **kugorang** - [GitHub](https://github.com/kugorang)
+
+---
+
+문제가 있거나 제안사항이 있으시면 [Issues](https://github.com/UnityVerseBridge/mobile-app/issues)에 등록해주세요.
