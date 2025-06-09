@@ -22,17 +22,6 @@ namespace UnityVerseBridge.MobileApp
 
         void Update()
         {
-            // Legacy Input System 테스트
-            if (Input.touchCount > 0)
-            {
-                Debug.Log($"[TouchInputTester] Legacy Input: {Input.touchCount} touches detected");
-                for (int i = 0; i < Input.touchCount; i++)
-                {
-                    var touch = Input.GetTouch(i);
-                    Debug.Log($"  Touch {i}: {touch.phase} at {touch.position}");
-                }
-            }
-
             // New Input System Enhanced Touch 테스트
             var enhancedTouches = Touch.activeTouches;
             if (enhancedTouches.Count > 0)
@@ -45,10 +34,13 @@ namespace UnityVerseBridge.MobileApp
             }
 
             // 마우스 클릭 테스트 (Editor에서)
-            if (Input.GetMouseButtonDown(0))
+#if UNITY_EDITOR
+            var mouse = UnityEngine.InputSystem.Mouse.current;
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame)
             {
-                Debug.Log($"[TouchInputTester] Mouse Click at {Input.mousePosition}");
+                Debug.Log($"[TouchInputTester] Mouse Click at {mouse.position.ReadValue()}");
             }
+#endif
         }
     }
 }

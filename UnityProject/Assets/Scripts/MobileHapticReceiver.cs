@@ -3,232 +3,348 @@ using UnityVerseBridge.Core;
 using UnityVerseBridge.Core.DataChannel.Data;
 using System;
 using System.Collections;
-#if UNITY_ANDROID
+#if UNITY_ANDROID && !UNITY_EDITOR
 using UnityEngine.Android;
-#elif UNITY_IOS
-using UnityEngine.iOS;
+#endif
+#if UNITY_IOS && !UNITY_EDITOR
+using System.Runtime.InteropServices;
 #endif
 
 namespace UnityVerseBridge.MobileApp
 {
     /// <summary>
-    /// Quest 앱으로부터 햅틱 데이터를 수신하여 모바일 진동으로 변환합니다.
-    /// Android VibrationEffect API와 iOS Core Haptics를 지원합니다.
+    /// 모바일 디바이스에서 Quest VR로부터 햅틱 명령을 수신하여
+    /// 플랫폼별 진동 피드백을 실행하는 컴포넌트입니다.
     /// </summary>
     public class MobileHapticReceiver : MonoBehaviour
     {
-    [SerializeField] private WebRtcManager webRtcManager;
+        [Header("WebRTC Manager")]
+        [SerializeField] private WebRtcManager webRtcManager;
+        
+        [Header("Haptic Settings")]
+        [Tooltip("햅틱 피드백을 활성화합니다.")]
+        [SerializeField] private bool enableHaptics = true;
+        
+        [Tooltip("커스텀 진동 패턴을 사용합니다. (Android only)")]
+        [SerializeField] private bool useCustomPatterns = true;
+        
+        [Tooltip("진동 강도 배율입니다.")]
+        [Range(0.1f, 2f)]
+        [SerializeField] private float intensityMultiplier = 1f;
 
-    void Start()
-    {
-        if (webRtcManager != null)
-            webRtcManager.OnDataChannelMessageReceived += HandleDataChannelMessageReceived;
-        else
-            Debug.LogError("WebRtcManager not assigned!");
-    }
+        [Header("Debug")]
+        [SerializeField] private bool debugMode = true;
 
-    void OnDestroy()
-    {
-        if (webRtcManager != null)
-            webRtcManager.OnDataChannelMessageReceived -= HandleDataChannelMessageReceived;
-    }
+#if UNITY_ANDROID && !UNITY_EDITOR
+        private AndroidJavaObject vibrator;
+        private AndroidJavaClass vibrationEffectClass;
+        private AndroidJavaClass vibrationAttributesClass;
+        private readonly int ANDROID_API_26 = 26; // Android O (8.0)
+#endif
 
-    private void HandleDataChannelMessageReceived(string jsonData)
-    {
-        if (string.IsNullOrEmpty(jsonData)) return;
-        try
+        void Awake()
         {
-            DataChannelMessageBase baseMsg = JsonUtility.FromJson<DataChannelMessageBase>(jsonData);
-            if (baseMsg?.type == "haptic")
+            if (webRtcManager == null)
             {
-                HapticCommand command = JsonUtility.FromJson<HapticCommand>(jsonData);
-                if (command != null)
+                webRtcManager = FindObjectOfType<WebRtcManager>();
+                if (webRtcManager == null)
                 {
-                    ProcessHapticCommand(command);
+                    Debug.LogError("[MobileHapticReceiver] WebRtcManager not found!");
+                    enabled = false;
+                    return;
                 }
             }
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"[MobileHapticReceiver] Failed to parse JSON: '{jsonData}' | Error: {e.Message}");
-        }
-    }
 
-        // 진동 패턴 변환을 위한 헬퍼 클래스
-        private class HapticPattern
-        {
-            public long[] timings;
-            public int[] amplitudes;
-            
-            public HapticPattern(long[] timings, int[] amplitudes)
-            {
-                this.timings = timings;
-                this.amplitudes = amplitudes;
-            }
+            InitializePlatformHaptics();
         }
-        
-        // Quest 햅틱 강도를 모바일 진동 강도로 매핑
-        private int ConvertToMobileAmplitude(float questIntensity)
+
+        void OnEnable()
         {
-            // Quest: 0.0-1.0 → Mobile: 0-255
-            return Mathf.RoundToInt(questIntensity * 255f);
+            if (webRtcManager != null)
+                webRtcManager.OnDataChannelMessageReceived += HandleDataChannelMessageReceived;
         }
-        
-        private void ProcessHapticCommand(HapticCommand command)
+
+        void OnDisable()
         {
-            Debug.Log($"[MobileHapticReceiver] Processing Haptic Command: {command.commandType}, Duration: {command.duration}");
-            
-            #if UNITY_ANDROID && !UNITY_EDITOR
-            ProcessAndroidHaptic(command);
-            #elif UNITY_IOS && !UNITY_EDITOR
-            ProcessiOSHaptic(command);
-            #else
-            // 에디터나 지원하지 않는 플랫폼에서는 기본 진동
-            if (command.commandType != HapticCommandType.PlaySound)
-            {
-                Handheld.Vibrate();
-            }
-            #endif
+            if (webRtcManager != null)
+                webRtcManager.OnDataChannelMessageReceived -= HandleDataChannelMessageReceived;
         }
-        
-        #if UNITY_ANDROID
-        private void ProcessAndroidHaptic(HapticCommand command)
+
+        private void InitializePlatformHaptics()
         {
-            using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
-            using (AndroidJavaObject activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
-            using (AndroidJavaObject vibrator = activity.Call<AndroidJavaObject>("getSystemService", "vibrator"))
+#if UNITY_ANDROID && !UNITY_EDITOR
+            try
             {
-                if (vibrator == null) return;
-                
-                // Android API 26+ (Oreo) VibrationEffect 지원
-                int sdkInt = 0;
-                using (AndroidJavaClass versionClass = new AndroidJavaClass("android.os.Build$VERSION"))
+                using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
                 {
-                    sdkInt = versionClass.GetStatic<int>("SDK_INT");
-                }
-                
-                if (sdkInt >= 26)
-                {
-                    using (AndroidJavaClass vibrationEffectClass = new AndroidJavaClass("android.os.VibrationEffect"))
+                    AndroidJavaObject currentActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                    vibrator = currentActivity.Call<AndroidJavaObject>("getSystemService", "vibrator");
+                    
+                    // Android API 26+ 확인
+                    int sdkInt = new AndroidJavaClass("android.os.Build$VERSION").GetStatic<int>("SDK_INT");
+                    if (sdkInt >= ANDROID_API_26)
                     {
-                        AndroidJavaObject vibrationEffect = null;
-                        
-                        switch (command.commandType)
-                        {
-                            case HapticCommandType.VibrateDefault:
-                                vibrationEffect = vibrationEffectClass.CallStatic<AndroidJavaObject>(
-                                    "createOneShot", 100L, 128); // 100ms, 중간 강도
-                                break;
-                                
-                            case HapticCommandType.VibrateShort:
-                                vibrationEffect = vibrationEffectClass.CallStatic<AndroidJavaObject>(
-                                    "createOneShot", 50L, 255); // 50ms, 최대 강도
-                                break;
-                                
-                            case HapticCommandType.VibrateLong:
-                                vibrationEffect = vibrationEffectClass.CallStatic<AndroidJavaObject>(
-                                    "createOneShot", (long)(command.duration * 1000f), 200); // duration 사용
-                                break;
-                                
-                            case HapticCommandType.VibrateCustom:
-                                // 커스텀 패턴 생성 (예: 진동-멈춤-진동)
-                                long[] timings = new long[] { 0, 100, 50, 100 };
-                                int[] amplitudes = new int[] { 0, 255, 0, 128 };
-                                vibrationEffect = vibrationEffectClass.CallStatic<AndroidJavaObject>(
-                                    "createWaveform", timings, amplitudes, -1); // -1 = no repeat
-                                break;
-                        }
-                        
-                        if (vibrationEffect != null)
-                        {
-                            vibrator.Call("vibrate", vibrationEffect);
-                        }
+                        vibrationEffectClass = new AndroidJavaClass("android.os.VibrationEffect");
+                        vibrationAttributesClass = new AndroidJavaClass("android.os.VibrationAttributes");
                     }
                 }
-                else
+                
+                if (debugMode) Debug.Log("[MobileHapticReceiver] Android vibrator initialized");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[MobileHapticReceiver] Failed to initialize Android vibrator: {e.Message}");
+            }
+#elif UNITY_IOS && !UNITY_EDITOR
+            // iOS는 별도의 초기화가 필요 없음
+            if (debugMode) Debug.Log("[MobileHapticReceiver] iOS haptics ready");
+#endif
+        }
+
+        private void HandleDataChannelMessageReceived(string jsonData)
+        {
+            if (!enableHaptics || string.IsNullOrEmpty(jsonData)) return;
+            
+            try
+            {
+                DataChannelMessageBase baseMsg = JsonUtility.FromJson<DataChannelMessageBase>(jsonData);
+                if (baseMsg?.type == "haptic")
                 {
-                    // 구형 Android API
-                    long duration = command.commandType == HapticCommandType.VibrateShort ? 50L : 
-                                   command.commandType == HapticCommandType.VibrateLong ? (long)(command.duration * 1000f) : 100L;
-                    vibrator.Call("vibrate", duration);
+                    HapticCommand command = JsonUtility.FromJson<HapticCommand>(jsonData);
+                    if (command != null)
+                    {
+                        ProcessHapticCommand(command);
+                    }
                 }
             }
+            catch (Exception e)
+            {
+                Debug.LogError($"[MobileHapticReceiver] Failed to parse JSON: '{jsonData}' | Error: {e.Message}");
+            }
         }
-        #endif
-        
-        #if UNITY_IOS
-        private void ProcessiOSHaptic(HapticCommand command)
+
+        private void ProcessHapticCommand(HapticCommand command)
         {
-            // iOS Haptic Feedback API 사용
+            if (debugMode) 
+                Debug.Log($"[MobileHapticReceiver] Processing Haptic: {command.commandType}, Duration: {command.duration}s, Intensity: {command.intensity}");
+
+            float adjustedIntensity = Mathf.Clamp01(command.intensity * intensityMultiplier);
+            float durationMs = command.duration * 1000f; // 초를 밀리초로 변환
+
             switch (command.commandType)
             {
                 case HapticCommandType.VibrateDefault:
-                    // Medium impact
-                    iOSHapticFeedback.Instance.Trigger(iOSHapticFeedback.iOSFeedbackType.ImpactMedium);
+                    VibrateDefault();
                     break;
                     
                 case HapticCommandType.VibrateShort:
-                    // Light impact
-                    iOSHapticFeedback.Instance.Trigger(iOSHapticFeedback.iOSFeedbackType.ImpactLight);
+                    VibrateCustom(50f, adjustedIntensity); // 50ms
                     break;
                     
                 case HapticCommandType.VibrateLong:
-                    // Heavy impact 또는 연속 진동
-                    StartCoroutine(ContinuousHapticForiOS(command.duration));
+                    VibrateCustom(500f, adjustedIntensity); // 500ms
                     break;
                     
                 case HapticCommandType.VibrateCustom:
-                    // Selection change (가벼운 틱 진동)
-                    iOSHapticFeedback.Instance.Trigger(iOSHapticFeedback.iOSFeedbackType.SelectionChange);
+                    VibrateCustom(durationMs, adjustedIntensity);
+                    break;
+                    
+                case HapticCommandType.PlaySound:
+                    // TODO: 사운드와 함께 진동
+                    if (debugMode) Debug.Log($"[MobileHapticReceiver] PlaySound not implemented: {command.soundName}");
+                    VibrateDefault(); // 임시로 기본 진동
                     break;
             }
         }
-        
-        private IEnumerator ContinuousHapticForiOS(float duration)
+
+        private void VibrateDefault()
         {
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                iOSHapticFeedback.Instance.Trigger(iOSHapticFeedback.iOSFeedbackType.ImpactHeavy);
-                yield return new WaitForSeconds(0.1f); // 100ms 간격
-                elapsed += 0.1f;
-            }
+#if UNITY_EDITOR
+            if (debugMode) Debug.Log("[MobileHapticReceiver] Editor: Vibrate (default)");
+#elif UNITY_ANDROID
+            AndroidVibrate(100); // 100ms 기본 진동
+#elif UNITY_IOS
+            IOSVibrate(IOSHapticType.Selection);
+#else
+            Handheld.Vibrate();
+#endif
         }
-        #endif
-        
-        // iOS Haptic Feedback 헬퍼 클래스 (별도 구현 필요)
-        #if UNITY_IOS
-        public class iOSHapticFeedback
+
+        private void VibrateCustom(float durationMs, float intensity)
         {
-            public enum iOSFeedbackType
+#if UNITY_EDITOR
+            if (debugMode) Debug.Log($"[MobileHapticReceiver] Editor: Vibrate {durationMs}ms at {intensity:F2} intensity");
+#elif UNITY_ANDROID
+            AndroidVibrateWithIntensity(durationMs, intensity);
+#elif UNITY_IOS
+            IOSVibrateCustom(durationMs, intensity);
+#else
+            // 기본 플랫폼은 Unity의 기본 진동 사용
+            if (durationMs > 100) // 긴 진동
             {
-                SelectionChange,
-                ImpactLight,
-                ImpactMedium,
-                ImpactHeavy,
-                Success,
-                Warning,
-                Error
+                StartCoroutine(RepeatVibration((int)(durationMs / 100f)));
             }
-            
-            private static iOSHapticFeedback _instance;
-            public static iOSHapticFeedback Instance
+            else
             {
-                get
-                {
-                    if (_instance == null)
-                        _instance = new iOSHapticFeedback();
-                    return _instance;
-                }
-            }
-            
-            public void Trigger(iOSFeedbackType type)
-            {
-                // iOS Native Plugin 호출 또는 Unity iOS Haptic API 사용
-                // 간단한 구현을 위해 Handheld.Vibrate() 사용
                 Handheld.Vibrate();
             }
+#endif
         }
-        #endif
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        private void AndroidVibrate(long milliseconds)
+        {
+            try
+            {
+                if (vibrator != null && vibrator.Call<bool>("hasVibrator"))
+                {
+                    vibrator.Call("vibrate", milliseconds);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[MobileHapticReceiver] Android vibrate error: {e.Message}");
+                Handheld.Vibrate(); // 폴백
+            }
+        }
+
+        private void AndroidVibrateWithIntensity(float durationMs, float intensity)
+        {
+            try
+            {
+                if (vibrator != null && vibrator.Call<bool>("hasVibrator"))
+                {
+                    int sdkInt = new AndroidJavaClass("android.os.Build$VERSION").GetStatic<int>("SDK_INT");
+                    
+                    if (sdkInt >= ANDROID_API_26 && vibrationEffectClass != null)
+                    {
+                        // Android 8.0+ VibrationEffect API 사용
+                        int amplitude = Mathf.RoundToInt(intensity * 255f);
+                        AndroidJavaObject vibrationEffect = vibrationEffectClass.CallStatic<AndroidJavaObject>(
+                            "createOneShot", (long)durationMs, amplitude
+                        );
+                        vibrator.Call("vibrate", vibrationEffect);
+                    }
+                    else
+                    {
+                        // 구형 Android는 패턴으로 강도 시뮬레이션
+                        long[] pattern = CreateVibratePattern(durationMs, intensity);
+                        vibrator.Call("vibrate", pattern, -1);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[MobileHapticReceiver] Android custom vibrate error: {e.Message}");
+                AndroidVibrate((long)durationMs); // 폴백
+            }
+        }
+
+        private long[] CreateVibratePattern(float durationMs, float intensity)
+        {
+            // 강도를 온/오프 패턴으로 시뮬레이션
+            if (intensity >= 0.8f)
+            {
+                // 강한 진동: 연속
+                return new long[] { 0, (long)durationMs };
+            }
+            else if (intensity >= 0.5f)
+            {
+                // 중간 진동: 짧은 간격
+                int segments = Mathf.Max(1, (int)(durationMs / 50f));
+                long[] pattern = new long[segments * 2];
+                for (int i = 0; i < segments; i++)
+                {
+                    pattern[i * 2] = i == 0 ? 0 : 10; // 대기
+                    pattern[i * 2 + 1] = 40; // 진동
+                }
+                return pattern;
+            }
+            else
+            {
+                // 약한 진동: 긴 간격
+                int segments = Mathf.Max(1, (int)(durationMs / 100f));
+                long[] pattern = new long[segments * 2];
+                for (int i = 0; i < segments; i++)
+                {
+                    pattern[i * 2] = i == 0 ? 0 : 50; // 대기
+                    pattern[i * 2 + 1] = 50; // 진동
+                }
+                return pattern;
+            }
+        }
+#endif
+
+#if UNITY_IOS && !UNITY_EDITOR
+        // iOS 햅틱 타입
+        private enum IOSHapticType
+        {
+            Selection,      // 가벼운 탭
+            ImpactLight,    // 가벼운 충격
+            ImpactMedium,   // 중간 충격
+            ImpactHeavy,    // 강한 충격
+            Success,        // 성공 피드백
+            Warning,        // 경고 피드백
+            Error          // 오류 피드백
+        }
+
+        [DllImport("__Internal")]
+        private static extern void _PlayHaptic(string type);
+
+        [DllImport("__Internal")]
+        private static extern void _PlayCustomHaptic(float intensity, float sharpness, float duration);
+
+        private void IOSVibrate(IOSHapticType type)
+        {
+            #if !UNITY_EDITOR
+            _PlayHaptic(type.ToString());
+            #endif
+        }
+
+        private void IOSVibrateCustom(float durationMs, float intensity)
+        {
+            #if !UNITY_EDITOR
+            // iOS는 Core Haptics를 통해 커스텀 햅틱 지원
+            float sharpness = intensity > 0.5f ? 0.8f : 0.3f; // 강도에 따른 선명도
+            _PlayCustomHaptic(intensity, sharpness, durationMs / 1000f);
+            #endif
+        }
+#endif
+
+        // 기본 플랫폼용 반복 진동
+        private IEnumerator RepeatVibration(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                Handheld.Vibrate();
+                yield return new WaitForSeconds(0.1f);
+            }
+        }
+
+        // 햅틱 활성화/비활성화
+        public void SetHapticsEnabled(bool enabled)
+        {
+            enableHaptics = enabled;
+            if (debugMode) Debug.Log($"[MobileHapticReceiver] Haptics {(enabled ? "enabled" : "disabled")}");
+        }
+
+        // 강도 배율 설정
+        public void SetIntensityMultiplier(float multiplier)
+        {
+            intensityMultiplier = Mathf.Clamp(multiplier, 0.1f, 2f);
+        }
+
+        // 테스트용 메서드
+        [ContextMenu("Test Default Vibration")]
+        public void TestDefaultVibration()
+        {
+            ProcessHapticCommand(new HapticCommand(HapticCommandType.VibrateDefault, 0.1f, 1f));
+        }
+
+        [ContextMenu("Test Custom Vibration")]
+        public void TestCustomVibration()
+        {
+            ProcessHapticCommand(new HapticCommand(HapticCommandType.VibrateCustom, 0.5f, 0.7f));
+        }
     }
 }
