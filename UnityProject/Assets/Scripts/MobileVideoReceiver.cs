@@ -23,7 +23,7 @@ namespace UnityVerseBridge.MobileApp
         {
             if (webRtcManager == null)
             {
-                webRtcManager = FindObjectOfType<WebRtcManager>();
+                webRtcManager = FindFirstObjectByType<WebRtcManager>();
                 if (webRtcManager == null)
                 {
                     Debug.LogError("[MobileVideoReceiver] WebRtcManager not found!");

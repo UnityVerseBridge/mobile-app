@@ -33,7 +33,7 @@ namespace UnityVerseBridge.MobileApp
             
             if (webRtcManager == null)
             {
-                webRtcManager = FindObjectOfType<WebRtcManager>();
+                webRtcManager = FindFirstObjectByType<WebRtcManager>();
                 if (webRtcManager == null)
                 {
                     Debug.LogError("[MobileInputSender] WebRtcManager not found!");

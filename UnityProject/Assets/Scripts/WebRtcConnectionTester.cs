@@ -72,7 +72,7 @@ namespace UnityVerseBridge.MobileApp.Test
             UpdateUI();
             
             // MobileAppInitializer가 이미 연결을 처리하고 있는지 확인
-            var initializer = FindObjectOfType<MobileAppInitializer>();
+            var initializer = FindFirstObjectByType<MobileAppInitializer>();
             if (initializer != null && initializer.enabled)
             {
                 isInitializerHandlingConnection = true;
