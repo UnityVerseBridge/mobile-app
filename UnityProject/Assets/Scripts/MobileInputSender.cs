@@ -109,6 +109,28 @@ namespace UnityVerseBridge.MobileApp
             Debug.Log($"[MobileInputSender] Sent mouse as touch: Phase={phase}, Pos=({normalizedX:F3}, {normalizedY:F3})");
         }
         
+        private void SendTouchData(Touch touch)
+        {
+            // Enhanced Touch의 위치를 정규화 (0-1)
+            float normalizedX = touch.screenPosition.x / Screen.width;
+            float normalizedY = touch.screenPosition.y / Screen.height;
+
+            // Touch phase 변환
+            var phase = ConvertPhase(touch.phase);
+
+            var touchData = new TouchData
+            {
+                type = "touch",
+                touchId = touch.touchId,
+                phase = phase,
+                positionX = normalizedX,
+                positionY = normalizedY
+            };
+
+            webRtcManager.SendDataChannelMessage(touchData);
+            Debug.Log($"[MobileInputSender] Sent touch: ID={touchData.touchId}, Phase={touchData.phase}, Pos=({normalizedX:F3}, {normalizedY:F3})");
+        }
+        
         private void SendLegacyTouchData(UnityEngine.Touch touch)
         {
             // 화면 좌표를 정규화 (0-1)
