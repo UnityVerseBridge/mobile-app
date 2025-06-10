@@ -189,6 +189,21 @@ namespace UnityVerseBridge.MobileApp
                 {
                     Debug.Log("[MobileAppInitializer] Registration confirmed by server");
                 }
+                else if (type == "joined-room")
+                {
+                    Debug.Log($"[MobileAppInitializer] Successfully joined room: {jsonData}");
+                    // Mobile app is ready - the server will notify the host
+                }
+                else if (type == "peer-joined")
+                {
+                    var peerInfo = JsonUtility.FromJson<UnityVerseBridge.Core.Signaling.Messages.PeerJoinedMessage>(jsonData);
+                    Debug.Log($"[MobileAppInitializer] Peer joined: {peerInfo.peerId} (role: {peerInfo.role})");
+                }
+                else if (type == "host-disconnected")
+                {
+                    Debug.LogWarning("[MobileAppInitializer] Host disconnected from room");
+                    // Could trigger reconnection or UI update here
+                }
                 else if (type == "error")
                 {
                     var error = JsonUtility.FromJson<ErrorMessage>(jsonData);

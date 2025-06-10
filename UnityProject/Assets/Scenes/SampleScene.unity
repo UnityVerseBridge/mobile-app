@@ -344,6 +344,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   webRtcManager: {fileID: 345686984}
+  enableHaptics: 1
+  useCustomPatterns: 1
+  intensityMultiplier: 1
+  debugMode: 1
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -567,7 +571,7 @@ MonoBehaviour:
       - stun:stun.l.google.com:19302
       username: 
     dataChannelLabel: data-channel
-  signalingServerUrl: ws://localhost:8080
+  signalingServerUrl: ws://1.219.187.87:9090
   isOfferer: 0
   autoStartPeerConnection: 0
   _isSignalingConnected: 0
@@ -732,7 +736,7 @@ MonoBehaviour:
   sendTestTouchButton: {fileID: 0}
   serverUrlInput: {fileID: 0}
   videoDisplay: {fileID: 1308483440}
-  defaultServerUrl: ws://localhost:8080
+  defaultServerUrl: ws://1.219.187.87:9090
   autoConnectOnStart: 1
 --- !u!4 &532460184
 Transform:
