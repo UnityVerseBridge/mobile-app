@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
 using UnityVerseBridge.Core;
 using UnityVerseBridge.Core.DataChannel.Data;
@@ -62,7 +63,7 @@ namespace UnityVerseBridge.MobileApp
             
             // Unity Editor나 Standalone에서 마우스 입력 처리
             #if UNITY_EDITOR || UNITY_STANDALONE
-            if (Input.GetMouseButton(0) || Input.GetMouseButtonDown(0) || Input.GetMouseButtonUp(0))
+            if (Mouse.current != null && (Mouse.current.leftButton.isPressed || Mouse.current.leftButton.wasPressedThisFrame || Mouse.current.leftButton.wasReleasedThisFrame))
             {
                 SendMouseAsTouch();
                 lastSendTime = Time.time;
@@ -71,11 +72,11 @@ namespace UnityVerseBridge.MobileApp
             #endif
             
             // 모바일에서 터치 입력 처리
-            if (Input.touchCount > 0)
+            if (Touch.activeTouches.Count > 0)
             {
-                for (int i = 0; i < Input.touchCount; i++)
+                foreach (var touch in Touch.activeTouches)
                 {
-                    SendLegacyTouchData(Input.GetTouch(i));
+                    SendTouchData(touch);
                 }
                 lastSendTime = Time.time;
             }
@@ -84,12 +85,16 @@ namespace UnityVerseBridge.MobileApp
         private void SendMouseAsTouch()
         {
             // 마우스 위치를 정규화 (0-1)
-            float normalizedX = Input.mousePosition.x / Screen.width;
-            float normalizedY = Input.mousePosition.y / Screen.height;
+            var mouse = Mouse.current;
+            if (mouse == null) return;
+            
+            Vector2 mousePos = mouse.position.ReadValue();
+            float normalizedX = mousePos.x / Screen.width;
+            float normalizedY = mousePos.y / Screen.height;
             
             TouchPhase phase = TouchPhase.Moved;
-            if (Input.GetMouseButtonDown(0)) phase = TouchPhase.Began;
-            else if (Input.GetMouseButtonUp(0)) phase = TouchPhase.Ended;
+            if (mouse.leftButton.wasPressedThisFrame) phase = TouchPhase.Began;
+            else if (mouse.leftButton.wasReleasedThisFrame) phase = TouchPhase.Ended;
             
             var touchData = new TouchData
             {
