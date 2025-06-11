@@ -24,15 +24,11 @@ namespace UnityVerseBridge.MobileApp
 
         void Start()
         {
-            // Get interface reference
+            // Get WebRtcManager reference
             if (webRtcManagerBehaviour == null)
             {
-                // Try to find WebRtcManager or MultiPeerWebRtcManager
+                // Try to find WebRtcManager
                 webRtcManagerBehaviour = FindFirstObjectByType<WebRtcManager>();
-                if (webRtcManagerBehaviour == null)
-                {
-                    webRtcManagerBehaviour = FindFirstObjectByType<MultiPeerWebRtcManager>();
-                }
             }
             
             if (webRtcManagerBehaviour != null)
@@ -47,7 +43,7 @@ namespace UnityVerseBridge.MobileApp
             }
             else
             {
-                Debug.LogError("[MobileVideoReceiver] No WebRtcManager or MultiPeerWebRtcManager found!");
+                Debug.LogError("[MobileVideoReceiver] No WebRtcManager found!");
                 enabled = false;
                 return;
             }
