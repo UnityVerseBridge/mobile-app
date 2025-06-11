@@ -20,7 +20,7 @@ namespace UnityVerseBridge.MobileApp
         
         [Header("Settings")]
         [SerializeField] private ConnectionConfig connectionConfig;
-        [SerializeField] private MobileAppInitializer appInitializer;
+        [SerializeField] private UnityVerseBridgeManager bridgeManager;
         [SerializeField] private float autoRefreshInterval = 5f;
         
         private Coroutine autoRefreshCoroutine;
@@ -150,10 +150,25 @@ namespace UnityVerseBridge.MobileApp
                 
                 ShowStatus($"Joining room: {roomId}", Color.yellow);
                 
-                // Start connection
-                if (appInitializer != null)
+                // Start connection using UnityVerseBridgeManager
+                if (bridgeManager != null)
                 {
-                    appInitializer.StartConnection();
+                    bridgeManager.SetRoomId(roomId);
+                    bridgeManager.Connect();
+                }
+                else
+                {
+                    // Try to find UnityVerseBridgeManager in scene
+                    bridgeManager = FindFirstObjectByType<UnityVerseBridgeManager>();
+                    if (bridgeManager != null)
+                    {
+                        bridgeManager.SetRoomId(roomId);
+                        bridgeManager.Connect();
+                    }
+                    else
+                    {
+                        Debug.LogError("[RoomListFetcher] UnityVerseBridgeManager not found!");
+                    }
                 }
             }
         }

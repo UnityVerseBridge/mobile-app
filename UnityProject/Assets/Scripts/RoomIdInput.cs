@@ -16,7 +16,7 @@ namespace UnityVerseBridge.MobileApp
         
         [Header("Settings")]
         [SerializeField] private ConnectionConfig connectionConfig;
-        [SerializeField] private MobileAppInitializer appInitializer;
+        [SerializeField] private UnityVerseBridgeManager bridgeManager;
         
         void Start()
         {
@@ -47,13 +47,29 @@ namespace UnityVerseBridge.MobileApp
             }
             
             // Room ID 설정
-            connectionConfig.roomId = roomIdInputField.text.Trim();
-            ShowStatus($"Connecting to room: {connectionConfig.roomId}", Color.yellow);
+            string roomId = roomIdInputField.text.Trim();
+            connectionConfig.roomId = roomId;
+            ShowStatus($"Connecting to room: {roomId}", Color.yellow);
             
-            // 연결 시작
-            if (appInitializer != null)
+            // 연결 시작 using UnityVerseBridgeManager
+            if (bridgeManager != null)
             {
-                appInitializer.StartConnection();
+                bridgeManager.SetRoomId(roomId);
+                bridgeManager.Connect();
+            }
+            else
+            {
+                // Try to find UnityVerseBridgeManager in scene
+                bridgeManager = FindFirstObjectByType<UnityVerseBridgeManager>();
+                if (bridgeManager != null)
+                {
+                    bridgeManager.SetRoomId(roomId);
+                    bridgeManager.Connect();
+                }
+                else
+                {
+                    Debug.LogError("[RoomIdInput] UnityVerseBridgeManager not found!");
+                }
             }
         }
         
