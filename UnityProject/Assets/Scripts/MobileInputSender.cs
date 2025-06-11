@@ -16,8 +16,8 @@ namespace UnityVerseBridge.MobileApp
         [SerializeField] private MonoBehaviour webRtcManagerBehaviour;
         [SerializeField] private float sendInterval = 0.016f; // 60fps
         
-        // Interface reference
-        private IWebRtcManager webRtcManager;
+        // WebRtcManager reference
+        private WebRtcManager webRtcManager;
         
         private float lastSendTime;
 
@@ -44,10 +44,10 @@ namespace UnityVerseBridge.MobileApp
             
             if (webRtcManagerBehaviour != null)
             {
-                webRtcManager = webRtcManagerBehaviour as IWebRtcManager;
+                webRtcManager = webRtcManagerBehaviour as WebRtcManager;
                 if (webRtcManager == null)
                 {
-                    Debug.LogError("[MobileInputSender] WebRtcManager behaviour must implement IWebRtcManager interface!");
+                    Debug.LogError("[MobileInputSender] WebRtcManager behaviour must be of type WebRtcManager!");
                     enabled = false;
                     return;
                 }

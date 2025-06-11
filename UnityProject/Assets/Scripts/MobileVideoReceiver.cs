@@ -15,8 +15,8 @@ namespace UnityVerseBridge.MobileApp
         [SerializeField] private RawImage displayImage; // 비디오를 표시할 UI RawImage
         [SerializeField] private RenderTexture receiveTexture; // Inspector에서 할당 가능
         
-        // Interface reference
-        private IWebRtcManager webRtcManager;
+        // WebRtcManager reference
+        private WebRtcManager webRtcManager;
         
         private VideoStreamTrack receivedVideoTrack;
         private bool isReceiving = false;
@@ -37,10 +37,10 @@ namespace UnityVerseBridge.MobileApp
             
             if (webRtcManagerBehaviour != null)
             {
-                webRtcManager = webRtcManagerBehaviour as IWebRtcManager;
+                webRtcManager = webRtcManagerBehaviour as WebRtcManager;
                 if (webRtcManager == null)
                 {
-                    Debug.LogError("[MobileVideoReceiver] WebRtcManager behaviour must implement IWebRtcManager interface!");
+                    Debug.LogError("[MobileVideoReceiver] WebRtcManager behaviour must be of type WebRtcManager!");
                     enabled = false;
                     return;
                 }

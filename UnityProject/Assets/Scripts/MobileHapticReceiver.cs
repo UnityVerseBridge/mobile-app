@@ -21,8 +21,8 @@ namespace UnityVerseBridge.MobileApp
         [Header("WebRTC Manager")]
         [SerializeField] private MonoBehaviour webRtcManagerBehaviour;
         
-        // Interface reference
-        private IWebRtcManager webRtcManager;
+        // WebRtcManager reference
+        private WebRtcManager webRtcManager;
         
         [Header("Haptic Settings")]
         [Tooltip("햅틱 피드백을 활성화합니다.")]
@@ -56,10 +56,10 @@ namespace UnityVerseBridge.MobileApp
             
             if (webRtcManagerBehaviour != null)
             {
-                webRtcManager = webRtcManagerBehaviour as IWebRtcManager;
+                webRtcManager = webRtcManagerBehaviour as WebRtcManager;
                 if (webRtcManager == null)
                 {
-                    Debug.LogError("[MobileHapticReceiver] WebRtcManager behaviour must implement IWebRtcManager interface!");
+                    Debug.LogError("[MobileHapticReceiver] WebRtcManager behaviour must be of type WebRtcManager!");
                     enabled = false;
                     return;
                 }

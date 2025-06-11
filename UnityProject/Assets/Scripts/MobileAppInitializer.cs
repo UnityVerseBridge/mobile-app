@@ -22,8 +22,8 @@ namespace UnityVerseBridge.MobileApp
         [SerializeField] private ConnectionConfig connectionConfig;
         [SerializeField] private WebRtcConfiguration webRtcConfiguration;
         
-        // Interface reference
-        private IWebRtcManager webRtcManager;
+        // WebRtcManager reference
+        private WebRtcManager webRtcManager;
 
         void Start()
         {
@@ -56,11 +56,11 @@ namespace UnityVerseBridge.MobileApp
                 throw new InvalidOperationException("Required dependencies are missing");
             }
 
-            // Get interface reference
-            webRtcManager = webRtcManagerBehaviour as IWebRtcManager;
+            // Get WebRtcManager reference
+            webRtcManager = webRtcManagerBehaviour as WebRtcManager;
             if (webRtcManager == null)
             {
-                throw new InvalidOperationException("webRtcManagerBehaviour must implement IWebRtcManager interface");
+                throw new InvalidOperationException("webRtcManagerBehaviour must be of type WebRtcManager");
             }
 
             webSocketAdapter = new SystemWebSocketAdapter();
