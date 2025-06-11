@@ -13,8 +13,11 @@ namespace UnityVerseBridge.MobileApp
     /// </summary>
     public class MobileInputSender : MonoBehaviour
     {
-        [SerializeField] private WebRtcManager webRtcManager;
+        [SerializeField] private MonoBehaviour webRtcManagerBehaviour;
         [SerializeField] private float sendInterval = 0.016f; // 60fps
+        
+        // Interface reference
+        private IWebRtcManager webRtcManager;
         
         private float lastSendTime;
 
@@ -32,18 +35,31 @@ namespace UnityVerseBridge.MobileApp
         {
             Debug.Log("[MobileInputSender] Starting...");
             
-            if (webRtcManager == null)
+            // Get interface reference
+            if (webRtcManagerBehaviour == null)
             {
-                webRtcManager = FindFirstObjectByType<WebRtcManager>();
+                // Try to find WebRtcManager
+                webRtcManagerBehaviour = FindFirstObjectByType<WebRtcManager>();
+            }
+            
+            if (webRtcManagerBehaviour != null)
+            {
+                webRtcManager = webRtcManagerBehaviour as IWebRtcManager;
                 if (webRtcManager == null)
                 {
-                    Debug.LogError("[MobileInputSender] WebRtcManager not found!");
+                    Debug.LogError("[MobileInputSender] WebRtcManager behaviour must implement IWebRtcManager interface!");
                     enabled = false;
                     return;
                 }
             }
+            else
+            {
+                Debug.LogError("[MobileInputSender] No WebRtcManager found!");
+                enabled = false;
+                return;
+            }
             
-            Debug.Log($"[MobileInputSender] WebRtcManager found: {webRtcManager.name}");
+            Debug.Log($"[MobileInputSender] WebRtcManager found: {webRtcManagerBehaviour.name}");
             
             // Input System 상태 확인
             Debug.Log($"[MobileInputSender] Enhanced Touch Enabled: {EnhancedTouchSupport.enabled}");
@@ -53,7 +69,15 @@ namespace UnityVerseBridge.MobileApp
         void Update()
         {
             // DataChannel 상태 확인
-            if (!webRtcManager.IsDataChannelOpen)
+            // For concrete WebRtcManager check DataChannel, for interface use WebRTC connection status
+            if (webRtcManagerBehaviour is WebRtcManager concreteManager)
+            {
+                if (!concreteManager.IsDataChannelOpen)
+                {
+                    return;
+                }
+            }
+            else if (!webRtcManager.IsWebRtcConnected)
             {
                 return;
             }

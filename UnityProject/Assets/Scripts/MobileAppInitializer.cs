@@ -18,9 +18,12 @@ namespace UnityVerseBridge.MobileApp
         private SignalingClient signalingClient;
 
         [Header("Dependencies")]
-        [SerializeField] private WebRtcManager webRtcManager;
+        [SerializeField] private MonoBehaviour webRtcManagerBehaviour;
         [SerializeField] private ConnectionConfig connectionConfig;
         [SerializeField] private WebRtcConfiguration webRtcConfiguration;
+        
+        // Interface reference
+        private IWebRtcManager webRtcManager;
 
         void Start()
         {
@@ -53,10 +56,16 @@ namespace UnityVerseBridge.MobileApp
                 throw new InvalidOperationException("Required dependencies are missing");
             }
 
+            // Get interface reference
+            webRtcManager = webRtcManagerBehaviour as IWebRtcManager;
+            if (webRtcManager == null)
+            {
+                throw new InvalidOperationException("webRtcManagerBehaviour must implement IWebRtcManager interface");
+            }
+
             webSocketAdapter = new SystemWebSocketAdapter();
             signalingClient = new SignalingClient();
             
-            webRtcManager.SetRole(false); // Answerer
             webRtcManager.SetupSignaling(signalingClient);
             
             if (webRtcConfiguration != null)
@@ -64,10 +73,13 @@ namespace UnityVerseBridge.MobileApp
                 webRtcManager.SetConfiguration(webRtcConfiguration);
             }
 
-            // Set role as Answerer
-            webRtcManager.SetRole(false);
-            // Answerer doesn't need autoStartPeerConnection - it waits for offer
-            webRtcManager.autoStartPeerConnection = false;
+            // Set WebRtcManager specific settings if it's the concrete type
+            var concreteWebRtcManager = webRtcManagerBehaviour as WebRtcManager;
+            if (concreteWebRtcManager != null)
+            {
+                concreteWebRtcManager.SetRole(false); // Answerer
+                concreteWebRtcManager.autoStartPeerConnection = false;
+            }
 
             // Handle disconnection and auto-reconnect
             signalingClient.OnDisconnected += HandleSignalingDisconnected;
@@ -101,9 +113,9 @@ namespace UnityVerseBridge.MobileApp
 
         private bool ValidateDependencies()
         {
-            if (webRtcManager == null)
+            if (webRtcManagerBehaviour == null)
             {
-                Debug.LogError("[MobileAppInitializer] WebRtcManager not assigned!");
+                Debug.LogError("[MobileAppInitializer] WebRtcManager behaviour not assigned!");
                 return false;
             }
             
@@ -220,7 +232,7 @@ namespace UnityVerseBridge.MobileApp
                 }
                 else if (type == "peer-joined")
                 {
-                    var peerInfo = JsonUtility.FromJson<UnityVerseBridge.Core.Signaling.Messages.PeerJoinedMessage>(jsonData);
+                    var peerInfo = JsonUtility.FromJson<PeerJoinedMessage>(jsonData);
                     Debug.Log($"[MobileAppInitializer] Peer joined: {peerInfo.peerId} (role: {peerInfo.role})");
                 }
                 else if (type == "host-disconnected")

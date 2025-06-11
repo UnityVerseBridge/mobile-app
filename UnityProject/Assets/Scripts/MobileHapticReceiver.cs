@@ -19,7 +19,10 @@ namespace UnityVerseBridge.MobileApp
     public class MobileHapticReceiver : MonoBehaviour
     {
         [Header("WebRTC Manager")]
-        [SerializeField] private WebRtcManager webRtcManager;
+        [SerializeField] private MonoBehaviour webRtcManagerBehaviour;
+        
+        // Interface reference
+        private IWebRtcManager webRtcManager;
         
         [Header("Haptic Settings")]
         [Tooltip("햅틱 피드백을 활성화합니다.")]
@@ -44,15 +47,28 @@ namespace UnityVerseBridge.MobileApp
 
         void Awake()
         {
-            if (webRtcManager == null)
+            // Get interface reference
+            if (webRtcManagerBehaviour == null)
             {
-                webRtcManager = FindFirstObjectByType<WebRtcManager>();
+                // Try to find WebRtcManager
+                webRtcManagerBehaviour = FindFirstObjectByType<WebRtcManager>();
+            }
+            
+            if (webRtcManagerBehaviour != null)
+            {
+                webRtcManager = webRtcManagerBehaviour as IWebRtcManager;
                 if (webRtcManager == null)
                 {
-                    Debug.LogError("[MobileHapticReceiver] WebRtcManager not found!");
+                    Debug.LogError("[MobileHapticReceiver] WebRtcManager behaviour must implement IWebRtcManager interface!");
                     enabled = false;
                     return;
                 }
+            }
+            else
+            {
+                Debug.LogError("[MobileHapticReceiver] No WebRtcManager found!");
+                enabled = false;
+                return;
             }
 
             InitializePlatformHaptics();
@@ -61,13 +77,23 @@ namespace UnityVerseBridge.MobileApp
         void OnEnable()
         {
             if (webRtcManager != null)
+            {
                 webRtcManager.OnDataChannelMessageReceived += HandleDataChannelMessageReceived;
+                
+                // WebRtcManager의 multi-peer mode인 경우 multi-peer 이벤트도 구독
+                webRtcManager.OnMultiPeerDataChannelMessageReceived += HandleMultiPeerDataChannelMessageReceived;
+            }
         }
 
         void OnDisable()
         {
             if (webRtcManager != null)
+            {
                 webRtcManager.OnDataChannelMessageReceived -= HandleDataChannelMessageReceived;
+                
+                // WebRtcManager의 multi-peer mode인 경우 multi-peer 이벤트도 구독 해제
+                webRtcManager.OnMultiPeerDataChannelMessageReceived -= HandleMultiPeerDataChannelMessageReceived;
+            }
         }
 
         private void InitializePlatformHaptics()
@@ -121,6 +147,17 @@ namespace UnityVerseBridge.MobileApp
             {
                 Debug.LogError($"[MobileHapticReceiver] Failed to parse JSON: '{jsonData}' | Error: {e.Message}");
             }
+        }
+        
+        private void HandleMultiPeerDataChannelMessageReceived(string peerId, string jsonData)
+        {
+            if (!enableHaptics || string.IsNullOrEmpty(jsonData)) return;
+            
+            if (debugMode) 
+                Debug.Log($"[MobileHapticReceiver] Received message from peer {peerId}");
+            
+            // MultiPeer의 경우에도 동일한 처리
+            HandleDataChannelMessageReceived(jsonData);
         }
 
         private void ProcessHapticCommand(HapticCommand command)

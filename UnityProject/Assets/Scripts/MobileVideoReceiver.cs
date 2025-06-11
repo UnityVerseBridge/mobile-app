@@ -11,9 +11,12 @@ namespace UnityVerseBridge.MobileApp
     /// </summary>
     public class MobileVideoReceiver : MonoBehaviour
     {
-        [SerializeField] private WebRtcManager webRtcManager;
+        [SerializeField] private MonoBehaviour webRtcManagerBehaviour;
         [SerializeField] private RawImage displayImage; // 비디오를 표시할 UI RawImage
         [SerializeField] private RenderTexture receiveTexture; // Inspector에서 할당 가능
+        
+        // Interface reference
+        private IWebRtcManager webRtcManager;
         
         private VideoStreamTrack receivedVideoTrack;
         private bool isReceiving = false;
@@ -21,15 +24,32 @@ namespace UnityVerseBridge.MobileApp
 
         void Start()
         {
-            if (webRtcManager == null)
+            // Get interface reference
+            if (webRtcManagerBehaviour == null)
             {
-                webRtcManager = FindFirstObjectByType<WebRtcManager>();
+                // Try to find WebRtcManager or MultiPeerWebRtcManager
+                webRtcManagerBehaviour = FindFirstObjectByType<WebRtcManager>();
+                if (webRtcManagerBehaviour == null)
+                {
+                    webRtcManagerBehaviour = FindFirstObjectByType<MultiPeerWebRtcManager>();
+                }
+            }
+            
+            if (webRtcManagerBehaviour != null)
+            {
+                webRtcManager = webRtcManagerBehaviour as IWebRtcManager;
                 if (webRtcManager == null)
                 {
-                    Debug.LogError("[MobileVideoReceiver] WebRtcManager not found!");
+                    Debug.LogError("[MobileVideoReceiver] WebRtcManager behaviour must implement IWebRtcManager interface!");
                     enabled = false;
                     return;
                 }
+            }
+            else
+            {
+                Debug.LogError("[MobileVideoReceiver] No WebRtcManager or MultiPeerWebRtcManager found!");
+                enabled = false;
+                return;
             }
             
             Debug.Log($"[MobileVideoReceiver] WebRTC connection state at start: {webRtcManager.IsWebRtcConnected}");
@@ -62,6 +82,9 @@ namespace UnityVerseBridge.MobileApp
             // 비디오 트랙 수신 이벤트 구독
             webRtcManager.OnVideoTrackReceived += HandleVideoTrackReceived;
             Debug.Log("[MobileVideoReceiver] Subscribed to OnVideoTrackReceived event");
+            
+            // 디버깅을 위한 연결 상태 확인
+            StartCoroutine(DebugConnectionState());
         }
 
         void OnDestroy()
@@ -90,8 +113,15 @@ namespace UnityVerseBridge.MobileApp
             }
         }
 
-        private void HandleVideoTrackReceived(VideoStreamTrack videoTrack)
+        private void HandleVideoTrackReceived(MediaStreamTrack track)
         {
+            var videoTrack = track as VideoStreamTrack;
+            if (videoTrack == null)
+            {
+                Debug.LogError("[MobileVideoReceiver] Received track is not a video track");
+                return;
+            }
+            
             Debug.Log($"[MobileVideoReceiver] Video track received: {videoTrack.Id}");
             Debug.Log($"[MobileVideoReceiver] Track enabled: {videoTrack.Enabled}, ReadyState: {videoTrack.ReadyState}");
             
@@ -143,7 +173,7 @@ namespace UnityVerseBridge.MobileApp
             // Texture is guaranteed to be ready here
             if (texture != null)
             {
-                Debug.Log($"[MobileVideoReceiver] Video received via OnVideoReceived: {texture.width}x{texture.height}");
+                Debug.Log($"[MobileVideoReceiver] Video received via OnVideoReceived: {texture.width}x{texture.height}, Type: {texture.GetType().Name}");
                 
                 // Stop polling if it's running
                 if (updateCoroutine != null)
@@ -161,6 +191,7 @@ namespace UnityVerseBridge.MobileApp
                 }
                 #endif
                 
+                // Try direct assignment first
                 displayImage.texture = texture;
                 
                 // Adjust aspect ratio to prevent stretching
@@ -225,6 +256,24 @@ namespace UnityVerseBridge.MobileApp
             }
             
             Debug.Log("[MobileVideoReceiver] Video texture update coroutine ended");
+        }
+        
+        private IEnumerator DebugConnectionState()
+        {
+            yield return new WaitForSeconds(2f);
+            
+            while (enabled)
+            {
+                if (webRtcManager != null)
+                {
+                    Debug.Log($"[MobileVideoReceiver] Debug - WebRTC Connected: {webRtcManager.IsWebRtcConnected}, " +
+                             $"Has video track: {receivedVideoTrack != null}, " +
+                             $"Track state: {receivedVideoTrack?.ReadyState}, " +
+                             $"Is receiving: {isReceiving}");
+                }
+                
+                yield return new WaitForSeconds(5f);
+            }
         }
     }
 }

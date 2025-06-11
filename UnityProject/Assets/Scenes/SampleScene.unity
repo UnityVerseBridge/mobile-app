@@ -207,7 +207,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0142d2dfd7a5bce46a142d89d9431b54, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  webRtcManager: {fileID: 345686984}
+  webRtcManagerBehaviour: {fileID: 731907946}
   enableHaptics: 1
   useCustomPatterns: 1
   intensityMultiplier: 1
@@ -424,7 +424,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 345686981}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a981495169898ed4a995621c48e80f7f, type: 3}
+  m_Script: {fileID: 11500000, guid: 123456789abcdef0123456789abcdef0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   configuration:
@@ -434,13 +434,14 @@ MonoBehaviour:
       urls:
       - stun:stun.l.google.com:19302
       username: 
-    dataChannelLabel: data-channel
+    dataChannelLabel: sendChannel
   signalingServerUrl: ws://1.219.187.87:9090
-  isOfferer: 0
-  autoStartPeerConnection: 0
+  maxConnections: 5
+  peerRole: 1
+  roomId: default-room
   _isSignalingConnected: 0
-  _peerConnectionState: 0
-  _dataChannelState: 3
+  _activeConnectionsCount: 0
+  _connectedPeerIds: []
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -638,8 +639,8 @@ Canvas:
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
-  m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 25
+  m_VertexColorAlwaysGammaSpace: 1
+  m_AdditionalShaderChannelsFlag: 1
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -695,7 +696,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc508ce0daff5cd47ad09b040ec1d262, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  webRtcManager: {fileID: 345686984}
+  webRtcManagerBehaviour: {fileID: 345686984}
   connectionConfig: {fileID: 11400000, guid: d71541c637844964e8ee81215a49732e, type: 2}
   webRtcConfiguration:
     iceServers:
@@ -732,7 +733,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5738cb205c809646bfe6bb5d65e28f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  webRtcManager: {fileID: 345686984}
+  webRtcManagerBehaviour: {fileID: 345686984}
   enableMicrophone: 1
   enableSpeaker: 1
   sampleRate: 48000
@@ -859,7 +860,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Texture: {fileID: 0}
+  m_Texture: {fileID: 8400000, guid: b87d3c4c810af4e518815b76a7aebe71, type: 2}
   m_UVRect:
     serializedVersion: 2
     x: 0
@@ -997,7 +998,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5d499c31f0649847b3a963658aa0873, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  webRtcManager: {fileID: 345686984}
+  webRtcManagerBehaviour: {fileID: 345686984}
   sendInterval: 0.016
 --- !u!1 &1729015831
 GameObject:
@@ -1043,9 +1044,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d115bae306eb1845aea7da0cf48ee85, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  webRtcManager: {fileID: 345686984}
+  webRtcManagerBehaviour: {fileID: 345686984}
   displayImage: {fileID: 1308483440}
-  receiveTexture: {fileID: 0}
+  receiveTexture: {fileID: 8400000, guid: b87d3c4c810af4e518815b76a7aebe71, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -1053,9 +1054,9 @@ SceneRoots:
   - {fileID: 330585546}
   - {fileID: 410087041}
   - {fileID: 832575519}
-  - {fileID: 345686983}
   - {fileID: 731907947}
   - {fileID: 343582239}
+  - {fileID: 345686983}
   - {fileID: 621375588}
   - {fileID: 1408659084}
   - {fileID: 14520758}

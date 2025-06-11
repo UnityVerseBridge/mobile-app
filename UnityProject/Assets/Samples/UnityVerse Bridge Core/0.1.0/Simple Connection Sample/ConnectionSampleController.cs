@@ -13,7 +13,10 @@ namespace UnityVerseBridge.Core.Samples.SimpleConnection
     {
         [Header("References")]
         [Tooltip("Scene에 있는 WebRtcManager 컴포넌트를 할당해주세요.")]
-        [SerializeField] private WebRtcManager webRtcManager;
+        [SerializeField] private MonoBehaviour webRtcManagerBehaviour;
+        
+        // Interface reference
+        private IWebRtcManager webRtcManager;
 
         [Header("UI References")]
         [SerializeField] private TMP_Text signalingStatusText;
@@ -34,26 +37,64 @@ namespace UnityVerseBridge.Core.Samples.SimpleConnection
 
         void Start()
         {
-            if (webRtcManager == null)
+            // Get interface reference
+            if (webRtcManagerBehaviour == null)
             {
-                Debug.LogError("WebRtcManager가 Inspector에 할당되지 않았습니다!");
-                enabled = false; // 컴포넌트 비활성화
+                // Try to find WebRtcManager or MultiPeerWebRtcManager
+                webRtcManagerBehaviour = FindFirstObjectByType<WebRtcManager>();
+                if (webRtcManagerBehaviour == null)
+                {
+                    webRtcManagerBehaviour = FindFirstObjectByType<MultiPeerWebRtcManager>();
+                }
+            }
+            
+            if (webRtcManagerBehaviour != null)
+            {
+                webRtcManager = webRtcManagerBehaviour as IWebRtcManager;
+                if (webRtcManager == null)
+                {
+                    Debug.LogError("[ConnectionSampleController] WebRtcManager behaviour must implement IWebRtcManager interface!");
+                    enabled = false;
+                    return;
+                }
+            }
+            else
+            {
+                Debug.LogError("[ConnectionSampleController] No WebRtcManager or MultiPeerWebRtcManager found!");
+                enabled = false;
                 return;
             }
 
-            // 버튼 리스너 추가
-            connectSignalingButton?.onClick.AddListener(webRtcManager.ConnectSignaling); // 직접 연결
-            startPeerConnectionButton?.onClick.AddListener(webRtcManager.StartPeerConnection); // 직접 연결
+            // Handle concrete WebRtcManager specific buttons
+            var concreteWebRtcManager = webRtcManagerBehaviour as WebRtcManager;
+            if (concreteWebRtcManager != null)
+            {
+                // 버튼 리스너 추가
+                connectSignalingButton?.onClick.AddListener(concreteWebRtcManager.ConnectSignaling);
+                startPeerConnectionButton?.onClick.AddListener(concreteWebRtcManager.StartPeerConnection);
+            }
+            else
+            {
+                // For MultiPeerWebRtcManager, disable these buttons
+                if (connectSignalingButton) connectSignalingButton.gameObject.SetActive(false);
+                if (startPeerConnectionButton) startPeerConnectionButton.gameObject.SetActive(false);
+            }
+            
             sendMessageButton?.onClick.AddListener(SendMessageFromInput);
 
-            // WebRtcManager 이벤트 구독
+            // IWebRtcManager 이벤트 구독
             webRtcManager.OnSignalingConnected += UpdateSignalingStatusUI;
             webRtcManager.OnSignalingDisconnected += UpdateSignalingStatusUI;
             webRtcManager.OnWebRtcConnected += UpdatePeerConnectionStatusUI;
             webRtcManager.OnWebRtcDisconnected += UpdatePeerConnectionStatusUI;
-            webRtcManager.OnDataChannelOpened += HandleDataChannelOpened;
-            webRtcManager.OnDataChannelClosed += HandleDataChannelClosed;
             webRtcManager.OnDataChannelMessageReceived += HandleDataChannelMessageReceived;
+            
+            // Concrete WebRtcManager specific events
+            if (concreteWebRtcManager != null)
+            {
+                concreteWebRtcManager.OnDataChannelOpened += HandleDataChannelOpened;
+                concreteWebRtcManager.OnDataChannelClosed += HandleDataChannelClosed;
+            }
 
             // 초기 UI 상태 업데이트
             UpdateSignalingStatusUI();
@@ -70,8 +111,14 @@ namespace UnityVerseBridge.Core.Samples.SimpleConnection
                 webRtcManager.OnSignalingDisconnected -= UpdateSignalingStatusUI;
                 webRtcManager.OnWebRtcConnected -= UpdatePeerConnectionStatusUI;
                 webRtcManager.OnWebRtcDisconnected -= UpdatePeerConnectionStatusUI;
-                webRtcManager.OnDataChannelOpened -= HandleDataChannelOpened;
-                webRtcManager.OnDataChannelClosed -= HandleDataChannelClosed;
+                
+                // Concrete WebRtcManager specific events
+                var concreteWebRtcManager = webRtcManagerBehaviour as WebRtcManager;
+                if (concreteWebRtcManager != null)
+                {
+                    concreteWebRtcManager.OnDataChannelOpened -= HandleDataChannelOpened;
+                    concreteWebRtcManager.OnDataChannelClosed -= HandleDataChannelClosed;
+                }
                 webRtcManager.OnDataChannelMessageReceived -= HandleDataChannelMessageReceived;
             }
         }
