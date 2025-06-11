@@ -10,6 +10,8 @@
 - Quest VR 카메라 뷰 실시간 수신 및 표시
 - 터치 입력을 VR 공간으로 전송
 - 햅틱 피드백 수신 및 처리
+- **[NEW] 양방향 오디오 통신 지원**
+- **[NEW] UnityVerseBridge 통합 컴포넌트 사용**
 - 저지연 P2P 통신
 
 ## 🎮 사용 시나리오
@@ -70,11 +72,12 @@ Assets/
 │   ├── MobileInputSender.cs      # 터치 입력 전송
 │   ├── MobileHapticReceiver.cs   # 햅틱 피드백
 │   ├── TouchInputTester.cs       # 터치 디버깅 도구
-│   └── ConnectionConfig.asset    # 연결 설정
+│   └── RoomIdInput.cs            # 룸 ID 입력 UI
 ├── Scenes/
 │   └── SampleScene.unity         # 메인 씬
-└── Prefabs/
-    └── UI/                       # UI 프리팹
+├── Prefabs/
+│   └── UI/                       # UI 프리팹
+└── ConnectionConfig.asset        # [NEW] 연결 설정
 ```
 
 ## 💡 핵심 컴포넌트 설명
