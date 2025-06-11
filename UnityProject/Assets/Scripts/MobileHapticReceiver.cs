@@ -46,7 +46,7 @@ namespace UnityVerseBridge.MobileApp
         {
             if (webRtcManager == null)
             {
-                webRtcManager = FindObjectOfType<WebRtcManager>();
+                webRtcManager = FindFirstObjectByType<WebRtcManager>();
                 if (webRtcManager == null)
                 {
                     Debug.LogError("[MobileHapticReceiver] WebRtcManager not found!");
@@ -228,8 +228,16 @@ namespace UnityVerseBridge.MobileApp
                     else
                     {
                         // 구형 Android는 패턴으로 강도 시뮬레이션
-                        long[] pattern = CreateVibratePattern(durationMs, intensity);
-                        vibrator.Call("vibrate", pattern, -1);
+                        if (useCustomPatterns)
+                        {
+                            long[] pattern = CreateVibratePattern(durationMs, intensity);
+                            vibrator.Call("vibrate", pattern, -1);
+                        }
+                        else
+                        {
+                            // 단순 진동
+                            vibrator.Call("vibrate", (long)durationMs);
+                        }
                     }
                 }
             }

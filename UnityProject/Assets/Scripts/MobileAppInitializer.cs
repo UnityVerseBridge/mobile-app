@@ -72,7 +72,31 @@ namespace UnityVerseBridge.MobileApp
             // Handle disconnection and auto-reconnect
             signalingClient.OnDisconnected += HandleSignalingDisconnected;
 
-            StartCoroutine(DelayedSignalingConnection(connectionConfig.signalingServerUrl));
+            // Auto-connect if configured
+            if (connectionConfig.autoGenerateRoomId || !string.IsNullOrEmpty(connectionConfig.roomId))
+            {
+                StartCoroutine(DelayedSignalingConnection(connectionConfig.signalingServerUrl));
+            }
+        }
+        
+        /// <summary>
+        /// Public method to start connection manually (called from UI)
+        /// </summary>
+        public void StartConnection()
+        {
+            if (webSocketAdapter != null && signalingClient != null)
+            {
+                // Disconnect existing connection if any
+                DisconnectAndCleanup();
+                
+                // Re-initialize
+                webSocketAdapter = new SystemWebSocketAdapter();
+                signalingClient = new SignalingClient();
+                webRtcManager.SetupSignaling(signalingClient);
+                signalingClient.OnDisconnected += HandleSignalingDisconnected;
+            }
+            
+            StartSignalingConnection(connectionConfig.signalingServerUrl);
         }
 
         private bool ValidateDependencies()
@@ -260,16 +284,33 @@ namespace UnityVerseBridge.MobileApp
             }
         }
 
-        void OnDestroy()
+        private void DisconnectAndCleanup()
         {
+            Debug.Log("[MobileAppInitializer] Disconnecting and cleaning up...");
+            
             if (signalingClient != null)
             {
                 signalingClient.OnSignalingMessageReceived -= HandleSignalingMessage;
                 signalingClient.OnDisconnected -= HandleSignalingDisconnected;
+                // SignalingClient doesn't have Dispose method, just clean up references
+                signalingClient = null;
             }
             
-            // Note: In newer Unity WebRTC versions, explicit Dispose() is not needed
-            // Resources are cleaned up automatically
+            if (webRtcManager != null)
+            {
+                webRtcManager.Disconnect();
+            }
+            
+            if (webSocketAdapter != null)
+            {
+                // SystemWebSocketAdapter cleanup - no explicit close needed
+                webSocketAdapter = null;
+            }
+        }
+
+        void OnDestroy()
+        {
+            DisconnectAndCleanup();
         }
     }
 }
