@@ -64,6 +64,7 @@ This is a sample mobile application that showcases:
 - `MobileVideoDebugger.cs`: Debugging tool for video streaming issues
 - Tests different rendering methods
 - Provides detailed logging
+- Monitors decoder initialization and texture updates
 
 ### Menu Controller
 - `MobileMenuController.cs`: In-app menu system
@@ -113,6 +114,9 @@ The mobile app uses core UI components:
 - Use WiFi for best results
 - Close other apps to free resources
 - Enable hardware acceleration in Player Settings
+- Default video quality: Low (640x360) for optimal performance
+- Supported resolutions: 360p, 720p, 1080p
+- H264 codec preferred for hardware decoding
 
 ## License
 
