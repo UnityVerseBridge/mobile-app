@@ -33,6 +33,13 @@ namespace UnityVerseBridge.MobileApp
             }
             
             SetupUICallbacks();
+            
+            // Track main UI panels with UI manager
+            if (roomSelectionPanel != null)
+                UIManager.Instance.TrackGameObject(roomSelectionPanel);
+                
+            if (connectionPanel != null)
+                UIManager.Instance.TrackGameObject(connectionPanel);
         }
         
         private void SetupUICallbacks()
@@ -167,6 +174,24 @@ namespace UnityVerseBridge.MobileApp
                 roomListUI.gameObject.SetActive(showList);
                 roomInputUI.gameObject.SetActive(!showList);
             }
+        }
+        
+        /// <summary>
+        /// Cleanup all UI elements created by this adapter
+        /// </summary>
+        public void CleanupUI()
+        {
+            Debug.Log("[MobileRoomUIAdapter] Cleaning up UI elements");
+            
+            // Hide panels first
+            if (roomSelectionPanel != null)
+                roomSelectionPanel.SetActive(false);
+                
+            if (connectionPanel != null)
+                connectionPanel.SetActive(false);
+            
+            // Clean up any dynamically created UI elements
+            UIManager.Instance.CleanupAll();
         }
         
         /// <summary>
