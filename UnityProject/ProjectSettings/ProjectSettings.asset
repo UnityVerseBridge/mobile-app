@@ -167,7 +167,7 @@ PlayerSettings:
   androidMinAspectRatio: 1
   applicationIdentifier:
     Android: com.UnityVerseBrdige.mobileApp
-    Standalone: com.UnityTechnologies.Mobile3DTemplate
+    Standalone: com.UnityVerseBrdige.mobileApp
     iPhone: com.UnityTechnologies.Mobile3DTemplate
   buildNumber:
     Standalone: 0
