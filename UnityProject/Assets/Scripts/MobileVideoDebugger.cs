@@ -145,7 +145,7 @@ namespace UnityVerseBridge.MobileApp
                 // Create debug render texture
                 if (debugRenderTexture == null)
                 {
-                    debugRenderTexture = new RenderTexture(1280, 720, 24, RenderTextureFormat.BGRA32);
+                    debugRenderTexture = new RenderTexture(640, 360, 24, RenderTextureFormat.BGRA32);
                     debugRenderTexture.name = "DebugRenderTexture";
                     debugRenderTexture.Create();
                 }

@@ -65,7 +65,7 @@ namespace UnityVerseBridge.MobileApp
         
         private void OnRoomSelected(string roomId)
         {
-            Debug.Log($"[MobileRoomUIAdapter] Room selected from list: {roomId}");
+            // Debug.Log($"[MobileRoomUIAdapter] Room selected from list: {roomId}");
             
             // Update room input UI
             if (roomInputUI != null)
@@ -87,13 +87,13 @@ namespace UnityVerseBridge.MobileApp
         
         private void OnRoomIdSubmitted(string roomId)
         {
-            Debug.Log($"[MobileRoomUIAdapter] Room ID submitted: {roomId}");
+            // Debug.Log($"[MobileRoomUIAdapter] Room ID submitted: {roomId}");
             ConnectToRoom(roomId);
         }
         
         private void OnRoomsUpdated(RoomListUI.RoomInfo[] rooms)
         {
-            Debug.Log($"[MobileRoomUIAdapter] Room list updated: {rooms.Length} rooms");
+            // Debug.Log($"[MobileRoomUIAdapter] Room list updated: {rooms.Length} rooms");
             
             // Mobile-specific: Show notification if new rooms appear
             if (rooms.Length > 0 && !roomSelectionPanel.activeSelf)
@@ -104,7 +104,7 @@ namespace UnityVerseBridge.MobileApp
         
         private void OnQRScanRequested()
         {
-            Debug.Log("[MobileRoomUIAdapter] QR scan requested");
+            // Debug.Log("[MobileRoomUIAdapter] QR scan requested");
             
             // Mobile-specific QR scanning implementation
             // This would integrate with platform-specific QR libraries
@@ -142,7 +142,7 @@ namespace UnityVerseBridge.MobileApp
             // Mobile-specific notification
 #if UNITY_IOS || UNITY_ANDROID
             // Use Unity Mobile Notifications package or native plugins
-            Debug.Log($"[MobileNotification] {message}");
+            // Debug.Log($"[MobileNotification] {message}");
 #endif
         }
         
@@ -150,7 +150,7 @@ namespace UnityVerseBridge.MobileApp
         {
             // Placeholder for QR scanning implementation
             // Would integrate with ZXing.NET or platform-specific libraries
-            Debug.Log("[MobileRoomUIAdapter] Starting QR scanner...");
+            // Debug.Log("[MobileRoomUIAdapter] Starting QR scanner...");
             
             // Simulate QR scan for testing
             if (Application.isEditor)
@@ -181,7 +181,7 @@ namespace UnityVerseBridge.MobileApp
         /// </summary>
         public void CleanupUI()
         {
-            Debug.Log("[MobileRoomUIAdapter] Cleaning up UI elements");
+            // Debug.Log("[MobileRoomUIAdapter] Cleaning up UI elements");
             
             // Hide panels first
             if (roomSelectionPanel != null)

@@ -111,7 +111,7 @@ namespace UnityVerseBridge.MobileApp.UI
         
         private void DisconnectAndCleanup()
         {
-            Debug.Log("[MobileMenuController] Disconnecting and cleaning up...");
+            // Debug.Log("[MobileMenuController] Disconnecting and cleaning up...");
             
             // Disconnect WebRTC
             if (bridgeManager != null)
@@ -127,7 +127,7 @@ namespace UnityVerseBridge.MobileApp.UI
         
         private void CleanupUI()
         {
-            Debug.Log("[MobileMenuController] Cleaning up UI...");
+            // Debug.Log("[MobileMenuController] Cleaning up UI...");
             
             // Cleanup all tracked UI
             UIManager.Instance.CleanupAll();
@@ -196,7 +196,7 @@ namespace UnityVerseBridge.MobileApp.UI
                 StartCoroutine(FadeOutCleanupStatus());
             }
             
-            Debug.Log($"[MobileMenuController] {message}");
+            // Debug.Log($"[MobileMenuController] {message}");
         }
         
         private IEnumerator FadeOutCleanupStatus()

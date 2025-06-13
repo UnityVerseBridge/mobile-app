@@ -48,7 +48,7 @@ namespace UnityVerseBridge.Core.Samples.SimpleConnection
             }
 
             // 버튼 리스너 추가
-            connectSignalingButton?.onClick.AddListener(webRtcManager.ConnectSignaling);
+            connectSignalingButton?.onClick.AddListener(() => _ = webRtcManager.ConnectSignaling());
             startPeerConnectionButton?.onClick.AddListener(webRtcManager.StartPeerConnection);
             sendMessageButton?.onClick.AddListener(SendMessageFromInput);
 
